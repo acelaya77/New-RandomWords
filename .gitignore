@@ -6,5 +6,7 @@
 [Tt]ranscript*/
 [Aa]rchive[sd]/
 [Ss]orted/
-Modules/oh-my-posh/2.0.207
-Modules/oh-my-posh/*
+oh-my-posh/2.0.207
+oh-my-posh/*
+posh-git/
+posh-git/*
