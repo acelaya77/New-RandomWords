@@ -1,0 +1,55 @@
+Function Get-NextSamAccountName {
+	[CmdletBinding()]
+    [OutputType([string])]
+	Param(
+		[Parameter(Mandatory=$true)]
+		[ValidatePattern("^[\w]{2}$")]
+		[Alias("i")]
+		[string]$initials,
+		
+		[Parameter(Mandatory=$false)]
+		[Alias("exc")]
+		[string[]]$exclude
+	) #end Param
+	
+	Begin{
+		$counter = 001
+		if($initials -ne $null){
+			$testLogin = $initials + $($counter.ToString('000'))
+		} #end if()
+		$testMe = "$testLogin"
+	} #end Begin{}
+	
+	Process{
+		do{
+			$j = $null
+			$testMe = "$($initials + $counter.ToString('000'))"
+			
+			if($testMe -in $exclude){
+				write-verbose "Excluded: $testMe"
+				$counter++
+				$j = $testMe
+				continue
+			} #end if()
+			
+			if($($(get-aduser -filter {sAMAccountName -eq $testMe} -ErrorAction SilentlyContinue).sAMAccountName)){
+				$j = $($(get-aduser -filter {sAMAccountName -eq $testMe} -ErrorAction SilentlyContinue).sAMAccountName)
+			} #end if()
+			
+			if($j -eq $null){
+				break
+			} #end if()
+			else{
+				
+			} #end else()
+			$counter++
+		} #end do{}
+		while($j -ne $null) #end while()
+		
+		$results = "$($initials + $counter.ToString('000'))"
+		
+		Return $results
+	} #end Process{}
+	
+	End{} #end End{}
+} #end Function Get-NextSamAccountName{}

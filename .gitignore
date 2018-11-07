@@ -1,0 +1,10 @@
+*.rar
+*.zip
+*.bak
+*.ignore
+[Tt]ranscripts/
+[Tt]ranscript*/
+[Aa]rchive[sd]/
+[Ss]orted/
+Modules/oh-my-posh/2.0.207
+Modules/oh-my-posh/*
