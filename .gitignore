@@ -6,6 +6,9 @@
 [Tt]ranscript*/
 [Aa]rchive[sd]/
 [Ss]orted/
+*posh*
+Import-ModuleExchange/
+test-ADAccount/
 oh-my-posh/2.0.207
 oh-my-posh/*
 posh-git/
