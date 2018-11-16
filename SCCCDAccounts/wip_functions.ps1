@@ -647,12 +647,13 @@ Function New-SCCCDAccount{
     }
 
     $accountSplat = @{
-        AccountPassword   = $password.secure
-        EmployeeID        = $EmployeeID
-        Enabled           = $true
-        Whatif            = $false
-        sAMAccountName    = $strSamAccountName
-        #UserPrincipalName = $("{0}@SCCCD.NET" -f $strSamAccountName)
+        AccountPassword       = $password.secure
+        EmployeeID            = $EmployeeID
+        Enabled               = $true
+        Whatif                = $false
+        sAMAccountName        = $strSamAccountName
+        #UserPrincipalName     = $("{0}@SCCCD.NET" -f $strSamAccountName)
+        ChangePasswordAtLogon = $true
     }
 
     if($department -notlike ""){
@@ -769,6 +770,7 @@ $(get-date $date -f 'MM/dd/yyyy HH:mm:ss')
 
 SamAccountName...... : $($newAccount.SamAccountName)
 Password............ : $($password.Text)
+MustChangeOnLogon... : $true
 
 UserPrincipalName... : $($newAccount.UserPrincipalName)
 Name................ : $($newAccount.Name)
