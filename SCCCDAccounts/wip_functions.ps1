@@ -709,7 +709,7 @@ Function New-SCCCDAccount{
     #Write-Debug $primarySMTPAddress
 
     if($EmployeeType -ne "Student"){
-        $accountSplat.UserPrincipalName = $primarySMTPAddress
+        $accountSplat.UserPrincipalName = $("{1}@{0}" -f $primarySMTPAddress.Split('@')[1],$strSamAccountName)
     }
 
     $accountSplat.GetEnumerator() #| fl
