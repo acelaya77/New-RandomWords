@@ -848,6 +848,9 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                         Try{
                             #$strAddresses = $("`"SMTP:{0}`",`"smtp:{1}`"" -f $secondarySMTP,$primarySMTPAddress)
                             #Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses $strAddresses  -DomainController $DomainController
+                            Wait-Debugger
+                            Write-Debug -Message "Check Senondary SMTP Address: $secondarySMTP"
+
                             Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses "SMTP:$($secondarySMTP)","smtp:$($primarySMTPAddress)" -DomainController $DomainController
                         }
                         Catch{
