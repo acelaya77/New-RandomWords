@@ -19,3 +19,4 @@
 
 . $PSScriptRoot\wip_functions.ps1
 Export-ModuleMember New-SCCCDAccount
+Export-ModuleMember Test-EmailAddressAvailable
