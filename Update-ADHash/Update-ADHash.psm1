@@ -62,12 +62,12 @@ Param(
 	#region :: Remove this region once we fix km040 and kevin.miller
 	<#
 		Notes: kevin.miller has the mailbox, but km040 has the employeeID. We have to move the mailbox to km040 without eliminating kevin.miller (it is urgent as this account may be used as a resource account elsewhere)
-	#>
 	$ADUsers += Get-ADUser -Filter {(SamAccountName -like "kevin.miller")} -Properties EmployeeID,sAMAccountName,Enabled,Mail | Select-Object EmployeeID,sAMAccountName,Enabled,Mail
 	$ADUsers[$ADUsers.IndexOf('kevin.miller')].EmployeeID = $(get-aduser 'km040' -Properties EmployeeID,Mail).EmployeeID
 	#$ADUsers[$ADUsers.IndexOf('km040')].Mail = $(get-aduser 'kevin.miller' -Properties Mail).Mail
 	
 	#$ADUsers[$ADUsers.IndexOf('km040')].Mail
+	#>
 	#endregion
 
 	$counter = 1 #Used to count results, if more than one, accounting for duplicate accounts
