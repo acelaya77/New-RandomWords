@@ -13,13 +13,18 @@
  
 	Write-Verbose ($Settings | Out-String)
 	Try {
-		$user = Get-ADuser $Identity -ErrorAction stop
+		$user = Get-ADuser $Identity -Properties * -ErrorAction stop -Server $DomainController
 		Write-Verbose $user.distinguishedname
 	}
 	Catch {
 		Throw $_
 	}
 
-	$user | Set-ADUser @Settings
+	$user | Set-ADUser @Settings -Server $DomainController
     
 }
+
+<#
+Remove-Module Update-MyUser
+Import-Module Update-MyUser
+#>

@@ -34,6 +34,7 @@ Function Test-ADAccountExist{
         $true
     }
     elseif($null -ne $sqlResults.EmployeeID){
+        $strName = $("{0} {1}" -f $sqlResults.GivenName,$sqlResults.SURNAME)
         Try{
             $a = Get-ADUser -Filter {Anr -eq $strName} -ErrorAction Stop
             if(($a.EmployeeID -eq $EmployeeID)){
@@ -100,7 +101,7 @@ Function Get-TrackItInfo{
     )
 
     $inputFile = get-item (Join-Path "$(([environment]::GetFolderPath("UserProfile")))\TrackIt-Export" "TrackIT-Export.csv")
-    $thisImported = Import-Csv $inputFile
+    [array]$thisImported = Import-Csv $inputFile
     <#
     $a.GIVENNAME = $importedCSV[[Array]::FindIndex( $importedCSV, [System.Predicate[PSCustomObject]]{ $args[0].EmployeeID -eq $_.EMPLOYEEID })].GIVENNAME
     #>
@@ -113,16 +114,6 @@ Function Get-TrackItInfo{
     }
     Return $thisItem
 }
-
-<#
-Function Get-PreferredAccountAttributes{
-    [CmdletBinding()]
-    Param(
-         [Parameter(Mandatory=$true)][Hash]$sqlInfo
-        ,[Parameter(Mandatory=$true)][Hash]$TrackItInfo
-    )
-}
-#>
 
 Function Test-NewAdAccount{
     [flags()]
@@ -219,7 +210,7 @@ Function Get-ExchangeDatabase {
 
         [Parameter(Mandatory = $true)]
         [ValidateSet(
-            "Adjunct"
+              "Adjunct"
             , "Faculty"
             , "Classified"
             , "Management"
@@ -309,7 +300,7 @@ Function Initialize-TrackItExportFile{
     }
 
     $content = $content | ConvertFrom-Csv | ConvertTo-Csv -NoTypeInformation -Delimiter ","
-
+    
     #$content = $content | Where-Object {$_.EmployeeID -notlike '0000000' -and $_.EmployeeID -ne "" -and $_.EmployeeID -ne $null} | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
     $content = $content | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
         $Id				= $_.Id.Trim()
@@ -348,7 +339,7 @@ Function Initialize-TrackItExportFile{
 
     Write-Verbose $content.count
     $content = $content.Where({($null -ne $_.EmployeeID) -and ($_.EmployeeID -ne '0000000')})
-
+    $content = $content | Sort-Object EmployeeID -Unique
     #$existingAccounts = $($content | ConvertTo-Csv | ConvertFrom-Csv) |
     $existingAccounts = @()
     $ADHash = Import-Clixml (Join-Path "C:\Users\ac007" "ADHash.xml")
@@ -517,6 +508,7 @@ Function New-SCCCDAccount{
         ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$IsStudent = $false
         ,[Parameter(Mandatory=$false,ParameterSetName='Initialize')][switch]$Initialize = $false
         ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$DebugMe = $false
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][string]$PreferredName
     )
 
     Try{
@@ -623,26 +615,32 @@ Function New-SCCCDAccount{
         else{
             $EmployeeType = $(Read-Host -Prompt "Employee type? (Classified,Management,Faculty,Adjunct,Student)")
         }
-    }else{
+    }
+    else{
         $EmployeeType = "Student"
     }
     Write-Verbose $EmployeeType
 
     if($sqlResults.DEPARTMENT -eq $trackItInfo.Department){
         $department = $sqlResults.DEPARTMENT
-    }elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-5))) -and (($sqlResults.DEPARTMENT -ne "") -and ($null -ne $sqlResults.TITLE))){
+    }
+    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-5))) -and (($sqlResults.DEPARTMENT -ne "") -and ($null -ne $sqlResults.TITLE))){
         $department = $sqlResults.DEPARTMENT
-    }elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
+    }
+    elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
         $department = $trackItInfo.Department
-    }else{
+    }
+    else{
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
 
     if((($sqlResults.TITLE -ne "") -and ($null -ne $sqlResults.TITLE)) -and ($(get-date $sqlResults.CHANGEDATE) -gt $($(get-date).AddDays(-5)))){
         $title = $sqlResults.TITLE
-    }elseif(($trackItInfo.TITLE -ne "") -and ($null -ne $trackItInfo.TITLE)){
+    }
+    elseif(($trackItInfo.TITLE -ne "") -and ($null -ne $trackItInfo.TITLE)){
         $title = $trackItInfo.TITLE
-    }else{
+    }
+    else{
         $title = Read-Host -Prompt $("What is the TITLE for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
 
@@ -691,12 +689,19 @@ Function New-SCCCDAccount{
         $accountSplat.Add('Path',$site.OU)
     }
 
-    if($sqlResults.PREFERREDNAME -ne ""){
-        $accountSplat.Add('DisplayName',$("{0}" -f $sqlResults.PREFERREDNAME,$sqlResults.SURNAME))
-        $FirstName = $sqlResults.PREFERREDNAME.Split(" ")[0]
-        $LastName = $sqlResults.PREFERREDNAME.Split(" ")[-1]
+    if($sqlResults.PREFERREDNAME -ne "" -or $preferredName -ne ""){
+        if($PreferredName -ne ''){
+            $accountSplat.Add('DisplayName',$("{0} {1}" -f $PreferredName,$sqlResults.SURNAME))
+            $prefFirstName = $PreferredName
+            $LastName = $sqlResults.SURNAME
+        }
+        elseif($sqlResults.PREFERREDNAME -ne ''){
+            $accountSplat.Add('DisplayName',$("{0}" -f $sqlResults.PREFERREDNAME,$sqlResults.SURNAME))
+            $prefFirstName = $sqlResults.PREFERREDNAME.Split(" ")[0]
+            $LastName = $sqlResults.PREFERREDNAME.Split(" ")[-1]
+        }
         if($PSBoundParameters.ContainsKey('HasEmail')){
-            $secondarySMTP = $("{0}.{1}@{2}" -f $FirstName.ToLower().Replace(' ','-'),$LastName.ToLower().Replace(' ','-'),$site.Domain)
+            $secondarySMTP = $("{0}.{1}@{2}" -f $prefFirstName.ToLower().Replace(' ','-'),$LastName.ToLower().Replace(' ','-'),$site.Domain)
         }
     }
     else{
@@ -704,13 +709,14 @@ Function New-SCCCDAccount{
     }
     $accountSplat.Add('Givenname',$("{0}" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME))
     $accountSplat.Add('Surname',$("{1}" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME))
-    $accountSplat.Add('Name',$accountSplat.DisplayName)
+    #$accountSplat.Add('Name',$accountSplat.DisplayName)
+    $accountSplat.Add('Name',$("{0} {1}" -f $accountSplat.Givenname,$accountSplat.Surname))
 
     $primarySMTPAddress = $("{0}.{1}@{2}" -f $sqlResults.GIVENNAME.Replace(' ','-').ToLower(),$sqlResults.SURNAME.Replace(' ','-').ToLower(),$site.Domain)
     #Write-Debug $primarySMTPAddress
 
     if($EmployeeType -ne "Student"){
-        $accountSplat.UserPrincipalName = $("{1}@{0}" -f $primarySMTPAddress.Split('@')[1],$strSamAccountName)
+        $accountSplat.UserPrincipalName = $("{0}@{1}" -f $strSamAccountName,$primarySMTPAddress.Split('@')[1])
     }
 
     $accountSplat.GetEnumerator() #| fl
@@ -730,17 +736,11 @@ Function New-SCCCDAccount{
                 #region :: Create Account; log password
 
                 Write-Debug $("{0},{1},{2},{3},{4},IsStudent: {5}" -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')))
-                if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")){
-
+                if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")) {
                     New-ADUser @accountSplat -Server $DomainController -PassThru | Tee-Object $strTeeFilename
-
-                $(@"
-Password          : $($password.text)
-PasswordPhonetic  : $($password.Phonetic)
-"@) | Out-String | Out-File -Append $strTeeFilename
-                #np++ $strTeeFilename
-                #endregion
+                    $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") | Out-String | Out-File -Append $strTeeFilename
                 }
+                #endregion
             }
             else{
                 Write-Debug "Missing values"
@@ -753,7 +753,8 @@ PasswordPhonetic  : $($password.Phonetic)
             Try{
                 $newAccount = Get-ADUser $accountSplat.sAMAccountName -Properties * -ErrorAction Stop -Server $DomainController
                 [bool]$AccountSuccess = $true
-            }Catch{
+            }
+            Catch{
                 [bool]$AccountSuccess = $false
             }
             if(($counter -gt 0) -and ($null -eq $newAccount.UserPrincipalName)){
@@ -762,9 +763,11 @@ PasswordPhonetic  : $($password.Phonetic)
             }
             $counter++
 
-        }Until(("" -notlike $newAccount.UserPrincipalName) -or ($counter -gt 5))
+        }
+        Until(("" -notlike $newAccount.UserPrincipalName) -or ($counter -gt 5))
 
         if(Get-Variable -Name thisOutput -ErrorAction SilentlyContinue){Remove-Variable -Force thisOutput -ErrorAction SilentlyContinue}
+#region :: Output
         $thisOutput = @"
 $(get-date $date -f 'MM/dd/yyyy HH:mm:ss')
 
@@ -797,6 +800,7 @@ DistinguishedName... : $($newAccount.DistinguishedName)
 Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",")
 
 "@
+#endregion
     }
 
     Switch(($HasEmail) -and (!$accountExists)){
@@ -844,17 +848,33 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                                 Start-Sleep -Seconds 30
                             }
                             $c++
-                        }Until($m.PrimarySMTPAddress -ne "" -or $c -gt 5)
-                        Try{
-                            #$strAddresses = $("`"SMTP:{0}`",`"smtp:{1}`"" -f $secondarySMTP,$primarySMTPAddress)
-                            #Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses $strAddresses  -DomainController $DomainController
-                            Wait-Debugger
-                            Write-Debug -Message "Check Senondary SMTP Address: $secondarySMTP"
-
-                            Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses "SMTP:$($secondarySMTP)","smtp:$($primarySMTPAddress)" -DomainController $DomainController
                         }
-                        Catch{
-                            Write-Verbose "Error $_"
+                        Until($m.PrimarySMTPAddress -ne "" -or $c -gt 5)
+                        
+                        if(Test-EmailAddressAvailable -EmailAddress $secondarySMTP){
+                            Try{
+                                #$strAddresses = $("`"SMTP:{0}`",`"smtp:{1}`"" -f $secondarySMTP,$primarySMTPAddress)
+                                #Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses $strAddresses  -DomainController $DomainController
+                                #Wait-Debugger
+                                Write-Debug -Message "Check Secondary SMTP Address: $secondarySMTP"
+
+                                #Get-Mailbox $mailboxSplat.Alias | Set-Mailbox -EmailAddresses "SMTP:$($secondarySMTP)","smtp:$($primarySMTPAddress)" -DomainController $DomainController
+                                $thisMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
+                                Set-Mailbox $thisMailbox.Alias -PrimarySMTPAddress $secondarySMTP -DomainController $DomainController
+                                Set-Mailbox $thisMailbox.Alias -SimpleDisplayName $("{0} {1}" -f $prefFirstName,$accountSplat.SURNAME) -DomainController $DomainController
+
+                                $c = 0
+                                $m = $null
+                                do{
+                                    $m = get-mailbox $mailboxSplat.Alias -DomainController $DomainController
+                                    if($c -gt 0){Start-Sleep -Seconds 15}
+                                    $c++
+                                }Until($m.PrimarySMTPAddress -eq $secondarySMTP)
+                                Write-Debug -Message $("Added secondary SMTP address, {0}" -f $secondarySMTP)
+                            }
+                            Catch{
+                                Write-Verbose "Error $_"
+                            }
                         }
                     }
                 }
@@ -873,11 +893,13 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     Start-Sleep -Seconds 30
                 }
                 $counter++
-            }Until(($newMailbox.PrimarySMTPAddress -notlike "") -or ($counter -gt 5))
+            }
+            Until(($newMailbox.PrimarySMTPAddress -notlike "") -or ($counter -gt 5))
             #Mail................ : $($newAccount.Mail)
             $thisOutput += @"
 PrimaryMail......... : $($newMailbox.PrimarySmtpAddress)
 SecondaryMail....... : $(if($newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).count -gt 0 ){$newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).replace('smtp:','')}else{$null})
+SimpleDisplayName... : $(if($newMailbox.SimpleDisplayName -ne $Null){$newMailbox.SimpleDisplayName}else{$null})
 "@
         }
         Default{
@@ -903,10 +925,7 @@ SecondaryMail....... : $(if($newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}
     $DebugPreference = $previousDebugPreference
 }
 
-
-
 <#
 Remove-Module SCCCDAccounts
 Import-Module SCCCDAccounts
 #>
-

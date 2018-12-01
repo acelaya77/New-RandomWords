@@ -12,8 +12,8 @@ IDENTITY    : N/A
 MODERATORS  : N/A
 AUTHOR      : Anthony J. Celaya
 DESCRIPTION : Adds log entry for an existing account in AD.
-UPDATED     : 08-09-2018
-VERSION     : 1.3
+UPDATED     : 11-30-2018
+VERSION     : 1.4
 
 
 Ver EntryDate  Editor Description    
@@ -22,7 +22,7 @@ Ver EntryDate  Editor Description
 1.1 01-29-2018 ac007  Updated user object creation
 1.2 03-12-2018 ac007  Added SMTP processing; Updated header.
 1.3 08-09-2018 ac007  Added explicit domain controller to query.
-
+1.4 11-30-2018 ac007  Fixed proxyAddresses.
 #>
 #endregion
 
@@ -99,15 +99,7 @@ Begin{
 
 	#if($a.ProxyAddresses.count -gt 0){
     if($mail.EmailAddresses.count -gt 0){
-		<#
-        $proxyAddresses = $a.ProxyAddresses | Where-Object{$_.ToLower() -match "smtp:*"}
-		$proxyAddresses = $proxyAddresses | ForEach-Object{$_.ToLower().Replace('smtp:','')}
-		$proxyAddresses = $proxyAddresses | Where-Object{($_ -notmatch $a.Mail) -and ($_ -notmatch $a.UserPrincipalName)}
-        #>
-        #$proxyAddresses = $mail.EmailAddresses | Where-Object{$_.ToLower() -match "smtp:*"}
-        $proxyAddresses = $($mail.EmailAddresses.Where({($_.PrefixString -eq 'smtp') -and ($_.IsPrimaryAddress -eq $false) -and ($_.SmtpAddress -ne $mail.UserPrincipalName.ToLower())})).SmtpAddress
-		#$proxyAddresses = $proxyAddresses | ForEach-Object{$_.ToLower().Replace('smtp:','')}
-		#$proxyAddresses = $proxyAddresses | Where-Object{($_ -notmatch $mail.PrimarySMTPAddress) -and ($_ -notmatch $mail.UserPrincipalName)}
+        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).replace('smtp:','')
 
 		if($proxyAddresses.count -gt 0){
 			Write-Verbose "$([string]::join(";",$($proxyAddresses)))"
