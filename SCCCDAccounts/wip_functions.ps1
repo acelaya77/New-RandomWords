@@ -187,7 +187,7 @@ Function Test-NewAdAccount{
         {($flags -bor   16384) -ne $flags}{$missingFlags += "Surname"          }
         {($flags -bor   32768) -ne $flags}{$missingFlags += "DisplayName"      }
         {($flags -bor   65536) -ne $flags}{$missingFlags += "Path"             }
-        {($flags -bor  131072) -ne $flags}{$missingFlags += "Title"            }
+        #{($flags -bor  131072) -ne $flags}{$missingFlags += "Title"            }
         {($flags -bor  262144) -ne $flags}{$missingFlags += "sAMAccountName"   }
         {($flags -bor  524288) -ne $flags}{$missingFlags += "Department"       }
         {($flags -bor 1048576) -ne $flags}{$missingFlags += "City"             }
@@ -213,7 +213,10 @@ Function Get-ExchangeDatabase {
               "Adjunct"
             , "Faculty"
             , "Classified"
+            , "Administrator"
             , "Management"
+            , "Limited Term"
+            , "Non-Bargaining"
             , "Student"
             , "Provisional")]
         [string]$EmployeeType
@@ -232,6 +235,9 @@ Function Get-ExchangeDatabase {
                 "Adjunct" {$ExchangeDB = "DB_FC_ADJ"}
                 "Faculty" {$ExchangeDB = "DB_FC_FAC"}
                 "Classified" {$ExchangeDB = "DB_FC_STAFF"}
+                "Non-Bargaining" {$ExchangeDB = "DB_FC_STAFF"}
+                "Limited Term" {$ExchangeDB = "DB_FC_STAFF"}
+                "Administrator"{$ExchangeDB = "DB_FC_STAFF"}
                 "Management" {$ExchangeDB = "DB_FC_STAFF"}
                 "Student" {$ExchangeDB = "DB_FC_STAFF"}
                 "Provisional" {$ExchangeDB = "DB_FC_STAFF"}
@@ -243,6 +249,9 @@ Function Get-ExchangeDatabase {
                 "Adjunct" {$ExchangeDB = "DB_FC_ADJ"}
                 "Faculty" {$ExchangeDB = "DB_FC_FAC"}
                 "Classified" {$ExchangeDB = "DB_FC_STAFF"}
+                "Non-Bargaining" {$ExchangeDB = "DB_FC_STAFF"}
+                "Limited Term" {$ExchangeDB = "DB_FC_STAFF"}
+                "Administrator" {$ExchangeDB = "DB_FC_STAFF"}
                 "Management" {$ExchangeDB = "DB_FC_STAFF"}
                 "Student" {$ExchangeDB = "DB_FC_STAFF"}
                 "Provisional" {$ExchangeDB = "DB_FC_STAFF"}
@@ -302,21 +311,24 @@ Function Initialize-TrackItExportFile{
     $content = $content | ConvertFrom-Csv | ConvertTo-Csv -NoTypeInformation -Delimiter ","
     
     #$content = $content | Where-Object {$_.EmployeeID -notlike '0000000' -and $_.EmployeeID -ne "" -and $_.EmployeeID -ne $null} | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
+    #$content | ConvertFrom-Csv -Delimiter "," | ft -a
+
     $content = $content | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
         $Id				= $_.Id.Trim()
         $Status			= $_.Status.Trim()
         $Summary1		= $_.Summary.Trim()
         $Summary		= $($Summary1.split("|")[0]).Trim()
-        $Name			= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
-        $Name			= $textInfo.ToTitleCase($($Name).ToLower())
-        $EmployeeID		= Switch($Summary1.Split("|")[2]){{$_ -ne $null}{$_.Trim()};Default{$null}}
-        $Site			= Switch($Summary1.Split("|")[3]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
-        $Department 	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
-        $Title      	= Switch($Summary1.Split("|")[5]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
-        $EmployeeType	= Switch($Summary1.Split("|")[6]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        #$Name			= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
+        #$Name			= $textInfo.ToTitleCase($($Name).ToLower())
+        #$EmployeeID		= Switch($Summary1.Split("|")[2]){{$_ -ne $null}{$_.Trim()};Default{$null}}
+        $EmployeeID		= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
+        $Site			= Switch($Summary1.Split("|")[2]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        $Department 	= Switch($Summary1.Split("|")[3]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        #$Title      	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        $EmployeeType	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
         $Requestor		= $_.Requestor
         $AssignedTech	= $_.'Assigned Technician'
-        $DateEntered	= $_.'Date Entered'
+        #$DateEntered	= $_.'Date Entered'
         Switch($EmployeeType){
             {$_ -like 'Certificated'}{$EmployeeType = 'Faculty'}
             Default{}
@@ -325,17 +337,18 @@ Function Initialize-TrackItExportFile{
             ID				= $Id
             Status			= $Status
             Summary			= $Summary
-            EmployeeName	= $Name
+            #EmployeeName	= $Name
             EmployeeID		= $EmployeeID
             Site			= $Site
             Department      = $Department
-            Title           = $Title
+            #Title           = $Title
             EmployeeType	= $EmployeeType
             Requestor		= $Requestor
             AssignedTech	= $AssignedTech
-            DateEntered		= $DateEntered
+            #DateEntered		= $DateEntered
         }
     }
+    #$content | ft -AutoSize
 
     Write-Verbose $content.count
     $content = $content.Where({($null -ne $_.EmployeeID) -and ($_.EmployeeID -ne '0000000')})
@@ -350,29 +363,29 @@ Function Initialize-TrackItExportFile{
                 $id				= $_.Id
                 $status			= $_.Status
                 $summary		= $_.Summary
-                $EmployeeName	= $_.EmployeeName
+                #$EmployeeName	= $_.EmployeeName
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
-                $Title          = $_.Title
+                #$Title          = $_.Title
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
-                $DateEntered	= $_.DateEntered
+                #$DateEntered	= $_.DateEntered
                 $ExistsInAD		= $true
                 [PSCustomObject]@{
                     ID           = $ID
                     Status       = $Status
                     Summary      = $Summary
-                    EmployeeName = $EmployeeName
+                    #EmployeeName = $EmployeeName
                     EmployeeID   = $EmployeeID
                     Site         = $Site
                     Department   = $Department
-                    Title        = $Title
+                    #Title        = $Title
                     EmployeeType = $EmployeeType
                     Requestor    = $Requestor
                     AssignedTech = $AssignedTech
-                    DateEntered  = $DateEntered
+                    #DateEntered  = $DateEntered
                     ExistsInAD   = $ExistsInAD
                 }
             }
@@ -386,29 +399,29 @@ Function Initialize-TrackItExportFile{
                 $id				= $_.Id
                 $status			= $_.Status
                 $summary		= $_.Summary
-                $EmployeeName	= $_.EmployeeName
+                #$EmployeeName	= $_.EmployeeName
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
-                $Title          = $_.Title
+                #$Title          = $_.Title
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
-                $DateEntered	= $_.DateEntered
+                #$DateEntered	= $_.DateEntered
                 $ExistsInAD		= $false
                 [PSCustomObject]@{
                     ID           = $ID
                     Status       = $Status
                     Summary      = $Summary
-                    EmployeeName = $EmployeeName
+                    #EmployeeName = $EmployeeName
                     EmployeeID   = $EmployeeID
                     Site         = $Site
                     Department   = $Department
-                    Title        = $Title
+                    #Title        = $Title
                     EmployeeType = $EmployeeType
                     Requestor    = $Requestor
                     AssignedTech = $AssignedTech
-                    DateEntered  = $DateEntered
+                    #DateEntered  = $DateEntered
                     ExistsInAD   = $ExistsInAD
                 }
             }
@@ -441,7 +454,8 @@ Function Initialize-TrackItExportFile{
         Default{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
-                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
+                #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
+                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
             }finally{
                 $stream.Close()
@@ -478,7 +492,8 @@ Function Initialize-TrackItExportFile{
         Default{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
-                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
+                #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
+                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
             }
             Finally{
@@ -499,6 +514,25 @@ Function Initialize-TrackItExportFile{
     $stopWatch.Stop()
 
 }#</Initialize-TrackItExportFile>
+
+Function Remove-FromTrackItExport{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Alias('User')]$EmployeeID
+    )
+
+    $file = get-item (Join-Path "C:\Users\ac007\TrackIt-Export" "Create-Me.csv")
+    $contents = Import-Csv $file
+    $thisHeader = Get-Content $file | Select-Object -First 1
+
+    if($contents.count){
+        $contents.where({$_.EmployeeID -ne $EmployeeID}) | Export-Csv -Delimiter "," -NTI $file
+    }
+    else{
+        $thisHeader | Out-File $file
+    }
+
+}
 
 Function New-SCCCDAccount{
     [CmdletBinding(SupportsShouldProcess)]
@@ -624,7 +658,7 @@ Function New-SCCCDAccount{
     if($sqlResults.DEPARTMENT -eq $trackItInfo.Department){
         $department = $sqlResults.DEPARTMENT
     }
-    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-5))) -and (($sqlResults.DEPARTMENT -ne "") -and ($null -ne $sqlResults.TITLE))){
+    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-5))) -and (($sqlResults.DEPARTMENT -ne ""))){
         $department = $sqlResults.DEPARTMENT
     }
     elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
@@ -634,6 +668,8 @@ Function New-SCCCDAccount{
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
 
+    #Skipping Title for now
+    <#
     if((($sqlResults.TITLE -ne "") -and ($null -ne $sqlResults.TITLE)) -and ($(get-date $sqlResults.CHANGEDATE) -gt $($(get-date).AddDays(-5)))){
         $title = $sqlResults.TITLE
     }
@@ -643,6 +679,7 @@ Function New-SCCCDAccount{
     else{
         $title = Read-Host -Prompt $("What is the TITLE for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
+    #>
 
     $accountSplat = @{
         AccountPassword       = $password.secure
@@ -658,9 +695,12 @@ Function New-SCCCDAccount{
         $accountSplat.Add('Department',$department)
     }
 
+    #Skipping Title
+    <#
     if($title -notlike ""){
         $accountSplat.Add('Title',$title)
     }
+    #>
 
     if($sqlResults.EXTENSIONATTRIBUTE1 -ne ""){
         $accountSplat.Add('OtherAttributes',@{ExtensionAttribute1=$sqlResults.EXTENSIONATTRIBUTE1})
@@ -784,7 +824,6 @@ EmployeeID.......... : $($newAccount.EmployeeID)
 ExtensionAttribute1. : $($newAccount.ExtensionAttribute1)
 Company............. : $($newAccount.Company)
 Department.......... : $($newAccount.Department)
-Title............... : $($newAccount.Title)
 Description......... : $($newAccount.Description)
 StreetAddress....... : $($newAccount.StreetAddress)
 City................ : $($newAccount.City)
@@ -802,6 +841,13 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
 "@
 #endregion
     }
+    
+    Remove-FromTrackItExport -User $newAccount.EmployeeID
+    
+    $hashFile = (Join-Path $([environment]::GetFolderPath("UserProfile")) "ADHash.xml")
+    $Global:ADHash[$newAccount.EmployeeID] = $newAccount.sAMAccountName
+    $Global:ADHash | Export-CliXml -Path $hashFile
+    $Global:ADHash.GetEnumerator() | Select-Object Key,Value | Sort-Object Key | Export-Csv -Delimiter "," -NoTypeInformation $hashFile.replace('.xml','.csv')
 
     Switch(($HasEmail) -and (!$accountExists)){
         $true{
@@ -922,6 +968,7 @@ SimpleDisplayName... : $(if($newMailbox.SimpleDisplayName -ne $Null){$newMailbox
             #np++ $strOutputFilename
         }
     }
+
     $DebugPreference = $previousDebugPreference
 }
 

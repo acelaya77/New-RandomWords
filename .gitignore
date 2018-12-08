@@ -2,6 +2,7 @@
 *.zip
 *.bak
 *.ignore
+*.old
 [Tt]ranscripts/
 [Tt]ranscript*/
 [Aa]rchive[sd]/
