@@ -655,19 +655,41 @@ Function New-SCCCDAccount{
     }
     Write-Verbose $EmployeeType
 
-    if($sqlResults.DEPARTMENT -eq $trackItInfo.Department){
+    #<#
+    if(($sqlResults.DEPARTMENT -eq $trackItInfo.Department) -and ($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-30)))){
+        #Write-Debug -Message "SQL Results are blank or NULL"
+        Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
-    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-5))) -and (($sqlResults.DEPARTMENT -ne ""))){
+    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-15))) -and (($sqlResults.DEPARTMENT -ne ""))){
+        Write-Debug -Message "SQL Results are blank or NULL or ChangeDate too old"
+        Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
-    elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
-        $department = $trackItInfo.Department
-    }
-    else{
+    #elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
+    elseif(($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like "")){
+        Write-Debug -Message "SQL Results are blank or NULL"
+        Wait-Debugger
+        #$department = $trackItInfo.Department
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
-
+    else{
+        Wait-Debugger
+        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+    }
+    
+    if($department -eq $null){
+        
+        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+    }
+    elseif($department -like ""){
+        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+    }
+    
+    Write-Verbose $Department
+     
+    #>
+    
     #Skipping Title for now
     <#
     if((($sqlResults.TITLE -ne "") -and ($null -ne $sqlResults.TITLE)) -and ($(get-date $sqlResults.CHANGEDATE) -gt $($(get-date).AddDays(-5)))){
@@ -876,8 +898,8 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     if($issues){pause}
                     #Write-Output $mailboxSplat.PrimarySMTPAddress
 
-                    Write-Debug $mailboxSplat.PrimarySMTPAddress
-                    Enable-Mailbox @mailboxSplat -DomainController $DomainController
+                    Write-Debug $($mailboxSplat.PrimarySMTPAddress)
+                    Enable-Mailbox @mailboxSplat -DomainController $DomainController | Out-Null
                     [bool]$MailboxSuccess = $true
                 }
                 Catch{
