@@ -18,17 +18,18 @@
 #>
 #endregion  ========================== :: Header :: ========================= #
 
-. $PSScriptRoot\wip_functions.ps1
+#. $PSScriptRoot\wip_functions.ps1
+. $PSScriptRoot\New-SCCCDAccount.ps1
+. $PSScriptRoot\Initialize-TrackItExportFile.ps1
 . $PSScriptRoot\Test-ExtensionAttribute1.ps1
 . $PSScriptRoot\Test-ADAccountExist.ps1
 . $PSScriptRoot\Test-EmailAddressAvailable.ps1
-. $PSScriptRoot\Get-TrackItInfo.ps1
 . $PSScriptRoot\Test-MissingAttributes.ps1
-. $PSScriptRoot\Get-ExchangeDatabase.ps1
-. $PSScriptRoot\Initialize-TrackItExportFile.ps1
 . $PSScriptRoot\Remove-FromTrackItExport.ps1
+. $PSScriptRoot\Get-ExchangeDatabase.ps1
+. $PSScriptRoot\Get-TrackItInfo.ps1
  
 #Export-ModuleMember 
-Export-ModuleMember Test-ADAccountExist
 Export-ModuleMember New-SCCCDAccount
+Export-ModuleMember Test-ADAccountExist
 Export-ModuleMember Test-EmailAddressAvailable
