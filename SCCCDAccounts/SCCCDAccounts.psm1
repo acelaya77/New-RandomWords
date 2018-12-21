@@ -20,7 +20,7 @@
 
 #. $PSScriptRoot\wip_functions.ps1
 . $PSScriptRoot\New-SCCCDAccount.ps1
-. $PSScriptRoot\Initialize-TrackItExportFile.ps1
+. $PSScriptRoot\Initialize-TrackItInformation.ps1
 . $PSScriptRoot\Test-ExtensionAttribute1.ps1
 . $PSScriptRoot\Test-ADAccountExist.ps1
 . $PSScriptRoot\Test-EmailAddressAvailable.ps1
@@ -33,3 +33,4 @@
 Export-ModuleMember New-SCCCDAccount
 Export-ModuleMember Test-ADAccountExist
 Export-ModuleMember Test-EmailAddressAvailable
+Export-ModuleMember Initialize-TrackItInformation

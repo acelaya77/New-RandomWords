@@ -57,7 +57,8 @@ Function New-SCCCDAccount{
     }
     Switch($Initialize){
         $true{
-            Initialize-TrackItExportFile
+            #Initialize-TrackItExportFile
+            Initialize-TrackItInformation
             Break
         }
         Default{
@@ -131,7 +132,7 @@ Function New-SCCCDAccount{
         elseif($null -ne $trackItInfo.EMployeeType){
             $EmployeeType = $trackItInfo.EmployeeType
         }
-        elseif(($sqlResults.CHANGEDATE -gt $($(get-date).AddDays(-5))) -and ("" -ne $sqlResults.EMPLOYEETYPE)){
+        elseif(($sqlResults.CHANGEDATE -gt $($(get-date).AddDays(-30))) -and ("" -ne $sqlResults.EMPLOYEETYPE)){
             $EmployeeType = $sqlResults.EMPLOYEETYPE
         }
         else{
@@ -149,15 +150,15 @@ Function New-SCCCDAccount{
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
-    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-15))) -and (($sqlResults.DEPARTMENT -ne ""))){
+    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
         Write-Debug -Message "SQL Results are blank or NULL or ChangeDate too old"
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
     #elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
     elseif(($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like "")){
-        Write-Debug -Message "SQL Results are blank or NULL"
-        Wait-Debugger
+        Write-Debug -Message "SQL Results for DEPARTMENT are blank or NULL"
+        #Wait-Debugger
         #$department = $trackItInfo.Department
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
@@ -285,7 +286,7 @@ Function New-SCCCDAccount{
             if($missingAttributes -eq 'None'){
                 #region :: Create Account; log password
 
-                Write-Debug $("{0},{1},{2},{3},{4},IsStudent: {5}" -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')))
+                Write-Debug $("{0},{1},{2},{3},{4},IsStudent: {5},Database: {6}" -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')),$mailboxSplat.Database)
                 if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")) {
                     New-ADUser @accountSplat -Server $DomainController -PassThru | Tee-Object $strTeeFilename
                     $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") | Out-String | Out-File -Append $strTeeFilename

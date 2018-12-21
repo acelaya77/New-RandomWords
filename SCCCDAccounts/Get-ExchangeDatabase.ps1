@@ -32,6 +32,7 @@ Function Get-ExchangeDatabase {
               "Adjunct"
             , "Faculty"
             , "Classified"
+            , "Confidential"
             , "Administrator"
             , "Management"
             , "Limited Term"
@@ -53,6 +54,7 @@ Function Get-ExchangeDatabase {
             Switch -Wildcard ($EmployeeType) {
                 "Adjunct" {$ExchangeDB = "DB_FC_ADJ"}
                 "Faculty" {$ExchangeDB = "DB_FC_FAC"}
+                "Confidential" {$EexchangeDB = "DB_FC_STAFF"}
                 "Classified" {$ExchangeDB = "DB_FC_STAFF"}
                 "Non-Bargaining" {$ExchangeDB = "DB_FC_STAFF"}
                 "Limited Term" {$ExchangeDB = "DB_FC_STAFF"}
@@ -68,6 +70,7 @@ Function Get-ExchangeDatabase {
                 "Adjunct" {$ExchangeDB = "DB_FC_ADJ"}
                 "Faculty" {$ExchangeDB = "DB_FC_FAC"}
                 "Classified" {$ExchangeDB = "DB_FC_STAFF"}
+                "Confidential" {$ExchangeDB = "DB_FC_STAFF"}
                 "Non-Bargaining" {$ExchangeDB = "DB_FC_STAFF"}
                 "Limited Term" {$ExchangeDB = "DB_FC_STAFF"}
                 "Administrator" {$ExchangeDB = "DB_FC_STAFF"}

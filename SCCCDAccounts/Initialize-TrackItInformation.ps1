@@ -21,7 +21,8 @@ Ver EntryDate  Editor Description
 #>
 #endregion
 
-Function Initialize-TrackItExportFile{
+#Function Initialize-TrackItExportFile{
+Function Initialize-TrackItInformation{
     [CmdletBinding()]
     Param(
 
@@ -80,8 +81,8 @@ Function Initialize-TrackItExportFile{
         $EmployeeID		= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
         $Site			= Switch($Summary1.Split("|")[2]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
         $Department 	= Switch($Summary1.Split("|")[3]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
-        #$Title      	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
-        $EmployeeType	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        $Title      	= Switch($Summary1.Split("|")[4]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
+        $EmployeeType	= Switch($Summary1.Split("|")[5]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
         $Requestor		= $_.Requestor
         $AssignedTech	= $_.'Assigned Technician'
         #$DateEntered	= $_.'Date Entered'
@@ -97,7 +98,7 @@ Function Initialize-TrackItExportFile{
             EmployeeID		= $EmployeeID
             Site			= $Site
             Department      = $Department
-            #Title           = $Title
+            Title           = $Title
             EmployeeType	= $EmployeeType
             Requestor		= $Requestor
             AssignedTech	= $AssignedTech
@@ -123,7 +124,7 @@ Function Initialize-TrackItExportFile{
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
-                #$Title          = $_.Title
+                $Title          = $_.Title
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
@@ -159,7 +160,7 @@ Function Initialize-TrackItExportFile{
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
-                #$Title          = $_.Title
+                $Title          = $_.Title
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
@@ -173,7 +174,7 @@ Function Initialize-TrackItExportFile{
                     EmployeeID   = $EmployeeID
                     Site         = $Site
                     Department   = $Department
-                    #Title        = $Title
+                    Title        = $Title
                     EmployeeType = $EmployeeType
                     Requestor    = $Requestor
                     AssignedTech = $AssignedTech
@@ -211,7 +212,7 @@ Function Initialize-TrackItExportFile{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
                 #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
-                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
+                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
             }finally{
                 $stream.Close()
@@ -249,7 +250,7 @@ Function Initialize-TrackItExportFile{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
                 #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
-                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
+                $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
             }
             Finally{
