@@ -113,11 +113,76 @@ Function New-SCCCDAccount{
     }
 
     if($accountExists){
-        Get-UserInfo "$($sqlResults.Givenname) $($sqlResults.Surname)"
+        #Write-Debug $("{0} {1}" -f $sqlResults.Givenname,$sqlResults.Surname)
+        try{
+            rv -Name g -Force -ErrorAction SilentlyContinue
+        }
+        catch{
+        }
+
+        $tempUser = Get-UserInfo $("{0} {1}" -f $($sqlResults.Givenname),$($sqlResults.Surname))
+        $tempUser | Get-Member
+        Wait-Debugger
+        Write-Host "Teszting"
+        write-Host $($tempUser.sAMAccountName)
+        #Remove-Module SCCCDAccounts;Import-Module SCCCDAccounts
+        $tempUser | fl
+        <#
+Write-Host $($(@'
+{0}
+{1}
+{2}
+{3}
+{4}
+{5}
+{6}
+{7}
+{8}
+{9}
+{10}
+{11}
+{12}
+{13}
+{14}
+{15}
+{16}
+{17}
+{18}
+{19}
+{20}
+{21}
+...
+'@) -f $($tempUser.sAMAccountName) `
+        ,$($tempUser.UserPrincipalName) `
+        ,$($tempUser.Name) `
+        ,$($tempUser.DisplayName) `
+        ,$($tempUser.Givenname) `
+        ,$($tempUser.Surname) `
+        ,$($tempUser.EmployeeID) `
+        ,$($tempUser.ExtensionAttribute1) `
+        ,$($tempUser.Description) `
+        ,$($tempUser.CanonicalName) `
+        ,$($tempUser.Title) `
+        ,$($tempUser.Department) `
+        ,$($tempUser.Company) `
+        ,$($tempUser.userAccountControl) `
+        ,$($tempUser.'UAC-Converted') `
+        ,$($tempUser.Enabled) `
+        ,$($tempUser.PasswordExpired) `
+        ,$($tempUser.whenCreated) `
+        ,$($tempUser.whenChanged) `
+        ,$($tempUser.LastLogonDate) `
+        ,$($tempUser.Mail) `
+        ,$($tempUser.MailNickname) `
+        ,$($tempUser.ProxyAddresses))
+        #>
+
+        #Wait-Debugger
+        #Write-Debug $($str)
+        
         break
     }
-    else{
-    }
+
 
     Switch($IsStudent){
         $true{
@@ -240,8 +305,8 @@ Function New-SCCCDAccount{
         $accountSplat.Add('Path',$site.OU)
     }
 
-    Wait-Debugger
-    $accountSplat.GetEnumerator()
+    #Wait-Debugger
+    Write-Debug $($accountSplat.GetEnumerator())
 
     if($sqlResults.PREFERREDNAME -ne "" -or $preferredName -ne ""){
         if($PreferredName -ne ''){
@@ -289,7 +354,15 @@ Function New-SCCCDAccount{
             if($missingAttributes -eq 'None'){
                 #region :: Create Account; log password
 
-                Write-Debug $("{0},{1},{2},{3},{4},IsStudent: {5},Database: {6}" -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')),$mailboxSplat.Database)
+                Write-Debug $($(@"
+Login:             {0}
+Givenname:         {1}
+Surname:           {2}
+EmployeeID:        {3}
+UserPrincipalName: {4}
+IsStudent:         {5}
+Database:          {6}
+"@) -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')),$mailboxSplat.Database)
                 if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")) {
                     New-ADUser @accountSplat -Server $DomainController -PassThru | Tee-Object $strTeeFilename
                     $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") | Out-String | Out-File -Append $strTeeFilename

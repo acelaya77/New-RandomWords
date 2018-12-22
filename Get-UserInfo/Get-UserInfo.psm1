@@ -15,7 +15,7 @@ Function Get-UserInfo{
 		Param(
 		[Parameter(Mandatory=$true,ValueFromPipeline=$true)][string[]]$UserNames,
 		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][switch]$NoOutput=$false,
-		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][string[]]$server="SDODC1B-08E",
+		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][string[]]$server=$DomainController,
 		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][switch]$Students,
 		[Parameter(Mandatory=$false)][switch]$screen,
 		[Parameter(Mandatory=$false)][switch]$ShowPass,
@@ -93,10 +93,10 @@ Function Get-UserInfo{
 
 				if($Students){
                     $props.Add('Server',"STUDENTS")
-                    $userList += $(Get-AdUser -Filter {Anr -eq $user} @props)
+                    $userList += $(Get-AdUser -Filter "Anr -eq '$user'" @props)
 				}#end if{}
 				Else{
-                    $userList += $(Get-AdUser -Filter {Anr -eq $user} @props)
+                    $userList += $(Get-AdUser -Filter "Anr -eq '$user'" @props)
 				}#end Else{}
 			} #end foreach($user in $userNames){}
 
@@ -132,14 +132,12 @@ Function Get-UserInfo{
 					, 'HomeDirectory'
 					, 'ScriptPath'
 					, 'msNPAllowDialin'
-                    #, @{N = 'UAC-Converted'; E = {Convert-UserAccountControl -userAccountControl $_.UserAccountControl}}
 					, 'userAccountControl'
                     , @{N = 'UAC-Converted'; E = {Get-ReadableUAC -userAccountControl $_.UserAccountControl}}
                     , @{N='ChangePasswordNextLogon';E={[bool]$(if($_.'msDS-UserPasswordExpiryTimeComputed' -eq 0){$true}else{$false})}}
 					, 'Enabled'
 					, 'PasswordExpired'
 					, 'PasswordLastSet'
-					#, @{N='PwdDateProjected';E={$(get-date $($_.PasswordLastSet)).AddDays(180)}}
 					, @{N = 'PasswordExpiry'; E = {if($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0){[datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed')}else{$null}}}
 					, @{N = 'PasswordRemaining'; E = {if($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0){$([datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') - (get-date)).Days}else{"Change at next logon"}}}
 					, 'AccountExpirationDate'
@@ -152,7 +150,61 @@ Function Get-UserInfo{
 				)
 			}
 			$UserList = $UserList | Select-Object -Unique | Select-Object @splat
-			Return $UserList
+			#$UserList | Get-Member
+
+            $Object = [PSCustomObject]@{
+                sAMAccountName = $UserList.SamAccountName
+				UserPrincipalName = $userList.UserPrincipalName
+				Name = $userList.Name
+				DisplayName = $userList.DisplayName
+				Givenname = $userList.Givenname
+				Surname = $userList.Surname
+				GenerationQUalifier = $userList.GenerationQUalifier
+				EmployeeID = $userList.EmployeeID
+				ExtensionAttribute1 = $userList.ExtensionAttribute1
+				Description = $userList.Description
+				CanonicalName = $userList.CanonicalName
+				Office = $userList.Office
+				OfficePhone = $userList.OfficePhone
+				IpPhone = $userList.IpPhone
+				MobilePhone = $userList.MobilePhone
+				Title = $userList.Title
+				EmployeeType = $userList.EmployeeType
+				Department = $userList.Department
+				Company = $userList.Company
+				StreetAddress = $userList.StreetAddress
+				City = $userList.City
+				St = $userList.St
+				PostalCode = $userList.PostalCode
+				Country = $userList.Country
+				wWWHomePage = $userList.wWWHomePage
+				HomeDrive = $userList.HomeDrive
+				HomeDirectory = $userList.HomeDirectory
+				ScriptPath = $userList.ScriptPath
+				msNPAllowDialin = $userList.msNPAllowDialin
+				userAccountControl = $userList.userAccountControl
+                'UAC-Converted' = $userList.'Uac-Converted'
+                ChangePasswordNextLogon = $UserList.Change
+				Enabled = $userList.Enabled
+				PasswordExpired = $userList.PasswordExpired
+				PasswordLastSet = $userList.PasswordLastSet
+				PasswordExpiry = $($userList.PasswordExpiry)
+				PasswordRemaining = $($userList.PasswordRemaining)
+				AccountExpirationDate = $($userList.AccountExpirationDate)
+				whenCreated = $userList.whenCreated
+				whenChanged = $userList.whenChanged
+				LastLogonDate = $userList.LastLogonDate
+				Mail = $userList.Mail
+				MailNickname = $userList.MailNickname
+                ProxyAddresses = $($userList.ProxyAddresses)
+            }
+            <#
+            Remove-Module Get-UserInfo;Import-Module Get-UserInfo
+            #>
+            #Return $UserList
+            #Return $Object
+            $userList
+
 			<#
 			switch ($NoOutput){
 				$true{

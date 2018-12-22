@@ -40,7 +40,7 @@ Param(
 Begin{
     #$DomainController = $(Get-DomainController)[0].Name
     #$DomainController
-    $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
+    #$DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
 
 	[string]$txtUser = $user
     
