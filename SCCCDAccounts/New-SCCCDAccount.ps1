@@ -126,10 +126,10 @@ Function New-SCCCDAccount{
     }
 
     if(-not $PSBoundParameters.ContainsKey('IsStudent')){
-        if(($sqlResults.EMPLOYEETYPE -eq $trackItInfo.EmployeeType)){
+        if(($sqlResults.EMPLOYEETYPE -eq $trackItInfo.EmployeeType -and $sqlResults.DEPARTMENT -ne "")){
             $EmployeeType = $sqlResults.EMPLOYEETYPE
         }
-        elseif($null -ne $trackItInfo.EMployeeType){
+        elseif(($null -ne $trackItInfo.EmployeeType) -and ($trackItInfo.EmployeeType -ne "")){
             $EmployeeType = $trackItInfo.EmployeeType
         }
         elseif(($sqlResults.CHANGEDATE -gt $($(get-date).AddDays(-30))) -and ("" -ne $sqlResults.EMPLOYEETYPE)){
@@ -151,7 +151,7 @@ Function New-SCCCDAccount{
         $department = $sqlResults.DEPARTMENT
     }
     elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
-        Write-Debug -Message "SQL Results are blank or NULL or ChangeDate too old"
+        Write-Debug -Message "SQL Results are blank or NULL for DEPARTMENT or ChangeDate too old"
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
@@ -240,6 +240,9 @@ Function New-SCCCDAccount{
         $accountSplat.Add('Path',$site.OU)
     }
 
+    $accountSplat.GetEnumerator()
+    Wait-Debugger
+
     if($sqlResults.PREFERREDNAME -ne "" -or $preferredName -ne ""){
         if($PreferredName -ne ''){
             $accountSplat.Add('DisplayName',$("{0} {1}" -f $PreferredName,$sqlResults.SURNAME))
@@ -296,6 +299,8 @@ Function New-SCCCDAccount{
             else{
                 Write-Debug "Missing values"
                 $missingAttributes
+                break
+                $halt = $true
             }
         }
 
@@ -364,8 +369,24 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
         $true{
             $primarySMTPAddress = $("{0}.{1}@{2}" -f $sqlResults.GIVENNAME.Replace(' ','-').ToLower(),$sqlResults.SURNAME.Replace(' ','-').ToLower(),$site.Domain)
 
-            $emailAddressAvailable = Test-EmailAddressAvailable -EmailAddress $primarySMTPAddress
+            #$emailAddressAvailable = Test-EmailAddressAvailable -EmailAddress $primarySMTPAddress
 
+            $count = 0
+            Do{
+                $emailAddressAvailable = Test-EmailAddressAvailable -EmailAddress $primarySMTPAddress
+                if($count -gt 1 -or (!$emailAddressAvailable)){
+                    $primarySMTPAddress = Read-Host -Prompt $("What is the next email address for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID,$site.Domain)
+                    $count++
+                    Start-Sleep -Seconds 3
+                }
+
+            }
+            Until($emailAddressAvailable)
+
+            $mailboxSplat.Add('PrimarySMTPAddress',$primarySMTPAddress)
+            $mailboxSplat.Add('Identity',$strSamAccountName)
+
+            <#
             if($emailAddressAvailable){
                 $mailboxSplat.Add('PrimarySMTPAddress',$primarySMTPAddress)
                 $mailboxSplat.Add('Identity',$strSamAccountName)
@@ -375,6 +396,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                 pause
                 [bool]$issues = $true
             }
+            #>
 
             <#
             if(($null -ne $secondarySMTP) -and (Test-EmailAddressAvailable -EmailAddress $secondarySMTP)){
