@@ -240,8 +240,8 @@ Function New-SCCCDAccount{
         $accountSplat.Add('Path',$site.OU)
     }
 
-    $accountSplat.GetEnumerator()
     Wait-Debugger
+    $accountSplat.GetEnumerator()
 
     if($sqlResults.PREFERREDNAME -ne "" -or $preferredName -ne ""){
         if($PreferredName -ne ''){
@@ -379,30 +379,12 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     $count++
                     Start-Sleep -Seconds 3
                 }
-
             }
             Until($emailAddressAvailable)
 
             $mailboxSplat.Add('PrimarySMTPAddress',$primarySMTPAddress)
             $mailboxSplat.Add('Identity',$strSamAccountName)
 
-            <#
-            if($emailAddressAvailable){
-                $mailboxSplat.Add('PrimarySMTPAddress',$primarySMTPAddress)
-                $mailboxSplat.Add('Identity',$strSamAccountName)
-            }
-            Else{
-                Write-Output "Email address not available: $($primarySMTPAddress)"
-                pause
-                [bool]$issues = $true
-            }
-            #>
-
-            <#
-            if(($null -ne $secondarySMTP) -and (Test-EmailAddressAvailable -EmailAddress $secondarySMTP)){
-
-            }
-            #>
 
             if($PSCmdlet.ShouldProcess("SCCCD Exchange","Adding $mailboxSplat to")){
                 Try{
