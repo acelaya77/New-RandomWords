@@ -306,7 +306,7 @@ Write-Host $($(@'
     }
 
     #Wait-Debugger
-    Write-Debug $($accountSplat.GetEnumerator())
+    Write-Debug $($accountSplat.GetEnumerator() | Out-String)
 
     if($sqlResults.PREFERREDNAME -ne "" -or $preferredName -ne ""){
         if($PreferredName -ne ''){
