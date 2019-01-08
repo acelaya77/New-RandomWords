@@ -17,6 +17,7 @@ Ver EntryDate  Editor Description
 --- ---------  ------ -----------    
 1.0 11-08-2017 ac007  INITIAL RELEASE
 1.1 12-13-2018 ac007  Removed all functions to separate files.
+1.2 01-07-2019 ac007  Updated to include new filter switch to Initialize-TrackitInformation function, which will only include 'Open' tickets.
 
 #>
 #endregion
@@ -58,7 +59,7 @@ Function New-SCCCDAccount{
     Switch($Initialize){
         $true{
             #Initialize-TrackItExportFile
-            Initialize-TrackItInformation
+            Initialize-TrackItInformation -Filter
             Break
         }
         Default{

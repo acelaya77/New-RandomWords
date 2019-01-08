@@ -3,29 +3,31 @@
 #region :: Header
 <#
 
-NAME        : Initialize-TrackItExportFile.ps1 
+NAME        : Initialize-TrackItInformation.ps1 
 AUTHOR      : Anthony J. Celaya
 DESCRIPTION : 
 MODULES     : 
 GLOBAL VARS : 
 LAST RAN    : 
-UPDATED     : 12-13-2018
-VERSION     : 1.0
+UPDATED     : 01-07-2019
+VERSION     : 1.1
 
 
 
 Ver EntryDate  Editor Description    
 --- ---------  ------ -----------    
 1.0 11-08-2017 ac007  INITIAL RELEASE
+1.1 01-07-2019 ac007  Update to include switch to filter results to 'Open' requests only.
 
 #>
+
 #endregion
 
 #Function Initialize-TrackItExportFile{
 Function Initialize-TrackItInformation{
     [CmdletBinding()]
     Param(
-
+        [Switch]$Filter
     )
 
     $stopWatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -44,10 +46,23 @@ Function Initialize-TrackItInformation{
     if (Test-Path $(Join-Path $(Join-Path $env:USERPROFILE "TrackIt-Export") "export_new.txt")){
         $file = Get-ChildItem $(Join-Path $(Join-Path $env:USERPROFILE "TrackIt-Export") "export_new.txt")
         $newFile = Join-Path $(Split-Path $file) "TrackIT-Export.csv"
+        $thisContent = [System.IO.File]::ReadAllLines((Resolve-Path $file.FullName))
+        $thisContent = $thisContent[0..$($thisContent.count - 2)]
+        [string]$header = $thisContent[0]
+
         try{
             $stream = [System.IO.StreamWriter]::new($newFile)
-            $thisContent = [System.IO.File]::ReadAllLines((Resolve-Path $file.FullName))
-            $thisContent | ConvertTo-Csv -NoTypeInformation |
+
+            [string[]]$tempContent = @()
+            Switch($Filter){
+                $true{
+                    $tempContent = $header
+                    $tempContent += $($thisContent | Where-Object{$_ -match "Open"}) | Out-String
+                    $thisContent = $tempContent
+                }
+            }            
+
+            $thisContent |
                  ForEach-Object{
                     $stream.WriteLine($_)
                 }
@@ -56,8 +71,9 @@ Function Initialize-TrackItInformation{
         }
     }
 
-    $content = Get-content $file.FullName
-    $content = $content[0..($content.Length - 2)]
+    #$content = Get-content $file.FullName
+    $content = Get-content $newFile
+    #$content = $content[0..($content.Length - 2)]
 
     $content = $content | ForEach-Object{
         $($($_ -split "`t").Trim() | ForEach-Object{
