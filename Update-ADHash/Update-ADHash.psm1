@@ -57,7 +57,7 @@ Param(
 
     $swADQuery = [system.diagnostics.stopwatch]::StartNew()
     #$ADUsers = Get-ADUser -Filter {(SamAccountName -like "*") -and (EmployeeID -like "*")} -Properties EmployeeID,sAMAccountName,Enabled,Mail | ?{($_.EmployeeID -notmatch $strRegEx) } | Select-Object EmployeeID,sAMAccountName,Enabled,Mail
-    $ADUsers = Get-ADUser -LDAPFilter $strLDAPFilter -Properties EmployeeID,sAMAccountName,Enabled,Mail | ?{($_.EmployeeID -notmatch $strRegEx) } | Select-Object EmployeeID,sAMAccountName,Enabled,Mail
+    $ADUsers = Get-ADUser -LDAPFilter $strLDAPFilter -Properties EmployeeID,sAMAccountName,Enabled,Mail -Server $DomainController | ?{($_.EmployeeID -notmatch $strRegEx) } | Select-Object EmployeeID,sAMAccountName,Enabled,Mail
     $swADQuery.stop()
 	#region :: Remove this region once we fix km040 and kevin.miller
 	<#
