@@ -14,3 +14,4 @@ oh-my-posh/2.0.207
 oh-my-posh/*
 posh-git/
 posh-git/*
+*.swp
