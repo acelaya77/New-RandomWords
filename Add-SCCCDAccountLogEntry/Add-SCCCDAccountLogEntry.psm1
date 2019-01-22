@@ -98,7 +98,7 @@ Begin{
     #$accountPassword = $password
 
 	#if($a.ProxyAddresses.count -gt 0){
-    if($mail.EmailAddresses.count -gt 0){
+    if($mail.EmailAddresses.count -gt 1){
         $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).replace('smtp:','')
 
 		if($proxyAddresses.count -gt 0){
