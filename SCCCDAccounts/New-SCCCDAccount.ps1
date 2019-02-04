@@ -211,12 +211,12 @@ Write-Host $($(@'
     Write-Verbose $EmployeeType
 
     #<#
-    if(($sqlResults.DEPARTMENT -eq $trackItInfo.Department) -and ($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-30)))){
+    if(($sqlResults.DEPARTMENT -eq $trackItInfo.Department) -and ($(get-date $($sqlResults.CHANGE_DATE)) -gt $($(get-date).AddDays(-30)))){
         #Write-Debug -Message "SQL Results are blank or NULL"
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
-    elseif(($(get-date $($sqlResults.CHANGEDATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
+    elseif(($(get-date $($sqlResults.CHANGE_DATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
         Write-Debug -Message "SQL Results are blank or NULL for DEPARTMENT or ChangeDate too old"
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
