@@ -123,9 +123,14 @@ Function Initialize-TrackItInformation{
     }
     #$content | ft -AutoSize
 
-    Write-Verbose $content.count
-    $content = $content.Where({($null -ne $_.EmployeeID) -and ($_.EmployeeID -ne '0000000')})
-    $content = $content | Sort-Object EmployeeID -Unique
+    if($content.count -gt 0){
+        Write-Verbose $content.count
+
+        #$content = $content.Where({($null -ne $_.EmployeeID) -and ($_.EmployeeID -ne '0000000')})
+        $content = $content.Where({([string]::IsNullOrEmpty($_.EmployeeID)) -and ($_.EmployeeID -ne '0000000')})
+        $content = $content | Sort-Object EmployeeID -Unique
+    }
+
     #$existingAccounts = $($content | ConvertTo-Csv | ConvertFrom-Csv) |
     $existingAccounts = @()
     $ADHash = Import-Clixml (Join-Path "C:\Users\ac007" "ADHash.xml")

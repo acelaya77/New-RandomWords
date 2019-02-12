@@ -42,11 +42,12 @@ Function Test-ADAccountExist{
     elseif($null -ne $sqlResults.EmployeeID){
         $strName = $("{0} {1}" -f $sqlResults.GivenName,$sqlResults.SURNAME)
         Try{
-            $a = Get-ADUser -Filter {Anr -eq $strName} -ErrorAction Stop
+            $a = Get-ADUser -Filter {Anr -eq $strName} -ErrorAction Stop -Properties EmployeeID
             if(($a.EmployeeID -eq $EmployeeID)){
                 $true
             }
-            elseif(($null -eq $a.EmployeeID) -and ($a.Givenname -eq $sqlResults.GIVENNAME) -and ($a.Surname -eq $sqlResults.SURNAME)){
+            #elseif(($null -eq $a.EmployeeID) -and ($a.Givenname -eq $sqlResults.GIVENNAME) -and ($a.Surname -eq $sqlResults.SURNAME)){
+            elseif((!([string]::IsNullOrEmpty($a.EmployeeID))) -and ($a.Givenname -eq $sqlResults.GIVENNAME) -and ($a.Surname -eq $sqlResults.SURNAME)){
                 $true
             }
             else{

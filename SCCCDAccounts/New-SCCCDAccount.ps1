@@ -8,8 +8,8 @@ DESCRIPTION : Home funtion for new SCCCD accounts.
 MODULES     : 
 GLOBAL VARS : 
 LAST RAN    : 
-UPDATED     : 12-13-2018
-VERSION     : 1.0
+UPDATED     : 02-11-2019
+VERSION     : 1.3
 
 
 
@@ -18,6 +18,7 @@ Ver EntryDate  Editor Description
 1.0 11-08-2017 ac007  INITIAL RELEASE
 1.1 12-13-2018 ac007  Removed all functions to separate files.
 1.2 01-07-2019 ac007  Updated to include new filter switch to Initialize-TrackitInformation function, which will only include 'Open' tickets.
+1.3 02-11-2019 ac007  Added OWA Outlook policy '2016 OWA Policy' as default.
 
 #>
 #endregion
@@ -467,6 +468,20 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
 
                     Write-Debug $($mailboxSplat.PrimarySMTPAddress)
                     Enable-Mailbox @mailboxSplat -DomainController $DomainController | Out-Null
+                    do{
+                        $tmpMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
+                    }
+                    While([string]::IsNullOrEmpty($tmpMailbox.Alias))
+                    
+                    Try{
+                        Write-Host "$($tmpMailbox.Alias)"
+                        Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA POlicy' -DomainController $DomainController
+                    }
+                    Catch{
+                        Write-Output "Couldn't set OWA Policy"
+                        Throw $_
+                    }
+
                     [bool]$MailboxSuccess = $true
                 }
                 Catch{
