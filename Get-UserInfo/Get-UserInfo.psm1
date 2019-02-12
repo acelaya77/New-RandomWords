@@ -11,15 +11,43 @@ Versions.......: 1.3 = Added {HomePhone,ipPhone,MobilePhone,OfficePhone,telephon
 Notes..........: 05-05-2017 :: Added {HomePhone,ipPhone,MobilePhone,OfficePhone,telephoneNumber} to output.
 #>
 
+<#
+
+Remove-Module Get-UserInfo;Import-Module Get-UserInfo
+
+#>
+
 Function Get-UserInfo{
 		Param(
-		[Parameter(Mandatory=$true,ValueFromPipeline=$true)][string[]]$UserNames,
-		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][switch]$NoOutput=$false,
-		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][string[]]$server=$DomainController,
-		[Parameter(Mandatory=$false,ValueFromPipeline=$true)][switch]$Students,
-		[Parameter(Mandatory=$false)][switch]$screen,
-		[Parameter(Mandatory=$false)][switch]$ShowPass,
-        [Parameter(Mandatory=$false)][switch]$UpdateLogs
+		[Parameter(Mandatory=$true , ParameterSetName='sAM')]
+        [string]$sAMAccountName,
+		
+        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
+        [Parameter(ParameterSetName='Anr')]
+        [switch]$NoOutput=$false,
+		
+        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
+        [Parameter(ParameterSetName='Anr')]
+        [string]$server=$DomainController,
+		
+        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
+        [Parameter(ParameterSetName='Anr')]
+        [switch]$Students,
+		
+        [Parameter(Mandatory=$true , ParameterSetName='Anr')]
+        [string]$Anr,
+		
+        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
+        [Parameter(ParameterSetName='Anr')]
+        [switch]$screen,
+		
+        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
+        [Parameter(ParameterSetName='Anr')]
+        [switch]$ShowPass,
+        
+        [Parameter(Mandatory=$false, ParameterSetName='Default')]
+        [Parameter(ParameterSetName='Anr')]
+        [switch]$UpdateLogs
 		)
 
 		Begin{
@@ -80,25 +108,30 @@ Function Get-UserInfo{
 
 			$UserList = @()
 			write-verbose "Querying host: $server"
-			foreach($user in $UserNames){
-				#region
-				<#
-				#$filter = "(anr=$user)"
-                #$filter = ("{Anr -eq " + '"' + $user + '"}').trim()
-                #$filter = "{Anr -eq '$user'}"
-                #$Filter = "{Anr -eq '$user'}"
-                #$props.Filter = $filter
-				#>
-				#endregion
+			#foreach($user in $UserNames){
 
-				if($Students){
-                    $props.Add('Server',"STUDENTS")
-                    $userList += $(Get-AdUser -Filter "Anr -eq '$user'" @props)
-				}#end if{}
-				Else{
-                    $userList += $(Get-AdUser -Filter "Anr -eq '$user'" @props)
-				}#end Else{}
-			} #end foreach($user in $userNames){}
+				Switch($PSCmdlet.ParameterSetName){
+                    {$_ -eq "Anr"}{
+                        if($Students){
+                            $props.Add('Server',"STUDENTS")
+                            $userList += $(Get-AdUser -Filter "Anr -eq '$Anr'" @props)
+				        }#end if{}
+				        Else{
+                            $userList += $(Get-AdUser -Filter "Anr -eq '$Anr'" @props)
+				        }#end Else{}                        
+                    }
+                    {$_ -eq "sAM"}{
+                        if($Students){
+                            $props.Add('Server',"STUDENTS")
+                            $userList += $(Get-AdUser -Filter "sAMAccountName -eq '$sAMAccountName'" @props)
+				        }#end if{}
+				        Else{
+                            $userList += $(Get-AdUser -Filter "sAMAccountName -eq '$sAMAccountName'" @props)
+				        }#end Else{}                        
+                    }
+                }
+
+			#} #end foreach($user in $userNames){}
 
 			#region :: removed 2018-06-22 :: return object, pipe to show screen
 			$splat = @{
