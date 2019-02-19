@@ -1,52 +1,61 @@
-
-<# ::
-Name...........: Get-UserInfo.psm1
-Author.........: Anthony J. Celaya
-Date...........: 04-25-2017
-Description....: Get AD user info and output to screen for research and account discovery
-Versions.......: 1.3 = Added {HomePhone,ipPhone,MobilePhone,OfficePhone,telephoneNumber} to putput
-		.......: 1.2 - Added -Screen parameter to facilitate output formatted for notes in Track-It! resolutions.
-		.......: 1.1 - Added module to computer UserAccountControl; removed code from this module.
-		.......: 1.0 - Original
-Notes..........: 05-05-2017 :: Added {HomePhone,ipPhone,MobilePhone,OfficePhone,telephoneNumber} to output.
-#>
-
+#region :: Header
 <#
+
+NAME        : Get-UserInfo.psm1 
+AUTHOR      : Anthony J. Celaya
+DESCRIPTION : Get AD user info and output to screen for research and account discovery
+MODULES     : 
+GLOBAL VARS : 
+LAST RAN    : 
+UPDATED     : 02-19-2019
+VERSION     : 1.4
+
+
+
+Ver EntryDate  Editor Description    
+--- ---------  ------ -----------    
+1.0 04-25-2017 ac007  INITIAL RELEASE
+1.1 04-27-2017 ac007  Added module to computer UserAccountControl; removed code from this module.
+1.2 04-28-2017 ac007  Added -Screen parameter to facilitate output formatted for notes in Track-It! resolutions.
+1.3 05-05-2017 ac007  Added {HomePhone,ipPhone,MobilePhone,OfficePhone,telephoneNumber} to putput
+1.4 02-19-2019 ac007  Changed parametersets to allow for both ANR and sAMAccountName queries; also allows sAMAccountName as default without parameter name.
+
 
 Remove-Module Get-UserInfo;Import-Module Get-UserInfo
 
 #>
+#endregion
+
 
 Function Get-UserInfo{
 		Param(
-		[Parameter(Mandatory=$true , ParameterSetName='sAM')]
+		[Parameter(Mandatory=$true
+            ,ParameterSetName='Default'
+            ,Position=0)]
         [string]$sAMAccountName,
 		
-        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
-        [Parameter(ParameterSetName='Anr')]
+        [Parameter(Mandatory=$false)]
         [switch]$NoOutput=$false,
 		
-        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
-        [Parameter(ParameterSetName='Anr')]
+        <#
+        [Parameter(Mandatory=$false)]
         [string]$server=$DomainController,
-		
-        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
-        [Parameter(ParameterSetName='Anr')]
+		#>
+
+        [Parameter(Mandatory=$false)]
         [switch]$Students,
 		
-        [Parameter(Mandatory=$true , ParameterSetName='Anr')]
+        [Parameter(Mandatory=$true
+            ,ParameterSetName='Anr')]
         [string]$Anr,
 		
-        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
-        [Parameter(ParameterSetName='Anr')]
+        [Parameter(Mandatory=$false)]
         [switch]$screen,
 		
-        [Parameter(Mandatory=$false, ParameterSetName='sAM')]
-        [Parameter(ParameterSetName='Anr')]
+        [Parameter(Mandatory=$false)]
         [switch]$ShowPass,
         
-        [Parameter(Mandatory=$false, ParameterSetName='Default')]
-        [Parameter(ParameterSetName='Anr')]
+        [Parameter(Mandatory=$false)]
         [switch]$UpdateLogs
 		)
 
@@ -120,7 +129,8 @@ Function Get-UserInfo{
                             $userList += $(Get-AdUser -Filter "Anr -eq '$Anr'" @props)
 				        }#end Else{}                        
                     }
-                    {$_ -eq "sAM"}{
+                    Default{
+                    #{$_ -eq "sAM"}{
                         if($Students){
                             $props.Add('Server',"STUDENTS")
                             $userList += $(Get-AdUser -Filter "sAMAccountName -eq '$sAMAccountName'" @props)
