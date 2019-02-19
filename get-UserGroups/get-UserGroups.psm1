@@ -1,4 +1,10 @@
-﻿Function Get-UserGroups{
+﻿
+<#
+Remove-Module Get-UserGroups
+Import-Module Get-UserGroups
+#>
+
+Function Get-UserGroups{
 	#[CmdletBinding()]
 	Param(
 	[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
@@ -11,30 +17,41 @@
 	Process{
 		foreach($usr in $users){
 			$UPN = get-aduser $usr -Properties MemberOf
-			$groups = foreach($group in ($UPN.MemberOf)){
-				get-adgroup $group -Properties *
-			}
-			$groups = $groups | sort
-			$colGroups = @()
-            foreach($group in $groups){
+			
+            $colGroups = @()
+            foreach($group in ($UPN.MemberOf)){
+				if($group -like '*DC=STUDENTS*'){
+                    $g = get-adgroup $group -Properties * -Server STUDENTS
+                    $IsStudents = $true
+                }
+                elseif($group -notlike '*DC=STUDENTS*'){
+                    $g = get-adgroup $group -Properties *
+                    $IsStudents = $false
+                }
+
 				$objGroup = [PSCustomObject]@{
 					#SamAccountName = $UPN.SamAccountName
 					#GivenName = $UPN.Givenname
 					#Surname = $UPN.Surname
-					Group = $group.Name
-					CN = $group.CN
-					sAMAccountName = $group.sAMAccountName
-					DisplayName = $group.DisplayName
-					Description = $group.Description
-					GroupCategory = $group.GroupCategory
-					GroupScope = $group.GroupScope
-					Info = $group.Info
-					CanonicalName = $group.CanonicalName
-					DistinguishedName = $group.DistinguishedName
-					Mail = $group.Mail
-					ProxyAddresses = [string]::join($($group.ProxyAddresses | ?{($_ -like "smtp:*") -and ($_ -notlike $group.Mail)}),"`r")
+					Group = $g.Name
+					CN = $g.CN
+					sAMAccountName = $(Switch ($IsStudents){{$_ -eq $true}{$("{0}.STUDENTS" -f $g.sAMAccountName)};{$_ -eq $false}{$($g.sAMAccountName)}})
+					DisplayName = $g.DisplayName
+					Description = $g.Description
+					GroupCategory = $g.GroupCategory
+					GroupScope = $g.GroupScope
+					Info = $g.Info
+					CanonicalName = $g.CanonicalName
+					DistinguishedName = $g.DistinguishedName
+					Mail = $g.Mail
+					ProxyAddresses = [string]::join($($g.ProxyAddresses | ?{($_ -like "smtp:*") -and ($_ -notlike $g.Mail)}),"`r")
 				} #end [PSCustomObject]
 				$colGroups += $objGroup
+                $IsStudents = $Null
+			}
+			#$groups = $groups | sort
+			
+            foreach($group in $groups){
 			} #end foreach($group in $groups){}
 			switch ($FileOutput){
 				$true{
@@ -58,7 +75,6 @@
 		Return $($colGroups.sAMAccountName) | sort | ft -AutoSize
 	}
 	#>
-
 
 
 	Return $colGroups.samAccountName
