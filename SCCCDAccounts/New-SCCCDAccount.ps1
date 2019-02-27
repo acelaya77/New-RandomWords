@@ -468,14 +468,17 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
 
                     Write-Debug $($mailboxSplat.PrimarySMTPAddress)
                     Enable-Mailbox @mailboxSplat -DomainController $DomainController | Out-Null
+                    
                     do{
+                        Wait-Debugger
+                        $tmpMailbox = $Null
                         $tmpMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
                     }
                     While([string]::IsNullOrEmpty($tmpMailbox.Alias))
                     
                     Try{
                         Write-Host "$($tmpMailbox.Alias)"
-                        Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA POlicy' -DomainController $DomainController
+                        Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $DomainController -ErrorAction Stop
                     }
                     Catch{
                         Write-Output "Couldn't set OWA Policy"

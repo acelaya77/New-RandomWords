@@ -99,8 +99,12 @@ Begin{
 
 	#if($a.ProxyAddresses.count -gt 0){
     if($mail.EmailAddresses.count -gt 1){
-        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).replace('smtp:','')
-
+        Write-Verbose "Enumerating filtered email addresses"
+        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')})
+        if($proxyAddresses.count -gt 0){
+            $proxyAddresses = $proxyAddresses.replace('smtp:','')
+        }
+         
 		if($proxyAddresses.count -gt 0){
 			Write-Verbose "$([string]::join(";",$($proxyAddresses)))"
 			Write-Host $null
