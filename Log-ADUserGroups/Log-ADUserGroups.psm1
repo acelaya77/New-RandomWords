@@ -1,4 +1,5 @@
-﻿Function Log-ADUserGroups{
+﻿
+Function Log-ADUserGroups{
 [CmdletBinding()]
 
 Param(
@@ -7,6 +8,7 @@ Param(
     [string]$strUser,
     [string]$Notes
 )
+    $date = get-date
     $groups = $null
     $user = Get-ADUser -Identity $strUser -Properties * <# -Properties Memberof,DisplayName,CanonicalName,ScriptPath,HomeDrive,HomeDirectory,ProxyAddresses #>
     #$strFileName = "$(get-date -f 'yyyyMMdd-hhmmss')-$($user.SAMACCOUNTNAME)-$($user.Givenname.ToLower().replace(" ","-"))-$($user.Surname.ToLower().replace(" ","-")).txt"
@@ -35,8 +37,8 @@ Param(
 
 ================================================================================
  TITLE......: AD Account Information Log
- DATE.......: $(get-date -Format 'MM-dd-yyyy')
- TIME.......: $(get-date -Format 'hh:mm:ss tt')
+ DATE.......: $(get-date $date -Format 'MM-dd-yyyy')
+ TIME.......: $(get-date $date -Format 'hh:mm:ss tt')
  NOTES......: $Notes
 ================================================================================
 
@@ -44,7 +46,8 @@ Param(
     $notes = @"
 	Name..................: $($User.Name)
 	SamAccountName........: $($User.SamAccountName)
-	UserPrincipalName.....: $($User.UserPrincipalName)
+	GUID..................: $($user.ObjectGUID)
+    UserPrincipalName.....: $($User.UserPrincipalName)
 	EmployeeID............: $($User.EmployeeID)
 	ExtensionAttribute1...: $($User.ExtensionAttribute1)
 	GivenName.............: $($User.GivenName)
@@ -83,38 +86,9 @@ Groups:
 	$(if($groups.count -gt 0){$([string]::join("`r`n`t",$($($groups  | sort Name).Name)))}else{""})
 "@
 
-<#    $header = @"
-********************************************************************************
-Date:            $(get-date -f 'yyyy/MM/dd hh:mm:ss')
-Tech:            $($env:USERNAME)
-Name:            $($user.DisplayName)
-SamAccountName:  $($user.sAMAccountName)
-AD Location:     $($user.CanonicalName)
-Logon Script:    $($user.ScriptPath)
-Home Drive:      $($user.HomeDrive)
-Home Directory:  $($user.HomeDirectory)
-ProxyAddresses:  $ProxyAddresses
-********************************************************************************
-
-Security Groups:
-"@
-    <# Removed: 12/12/2016, depricated for the here-string that precedes
-
-    #"Group Membership for $DisplayName ($SamAccountName) as of $(get-date -f 'yyyy/MM/dd hh:mm:ss')" | Out-File -FilePath $file
-    "Date: $(get-date -f 'yyyy/MM/dd hh:mm:ss')" | Out-File -FilePath $file
-    "Name: $DisplayName" | Out-File -FilePath $file -Append
-    "SamAccountName: $SamAccountName" | Out-File -FilePath $file -Append
-    
-    #12/12/2016: Added to document original account object location, Logon Script, Home path and home directory within AD
-    "Account location: $CanonicalName" | Out-File -FilePath $file -Append
-    "Logon Script: $script" | Out-File -FilePath $file -Append
-    "Home Drive: $homeDrive" | Out-File -FilePath $file -Append
-    "Home Path: $homePath" | Out-File -FilePath $file -Append
-    #>
     $output = $header
     $output += $Notes
     $output += "`r`n"
-    #$header + "`r`n" > $file
     $stream = [System.IO.StreamWriter]::new($file)
     Try{
         $output | Out-String -Stream | ForEach-Object{
@@ -124,18 +98,6 @@ Security Groups:
         $stream.Close()
     }
 
-<#
-    #$groups = Get-ADPrincipalGroupMembership -Identity "$this"
-    $groups = $user.memberof
-    $groups = $groups | Get-ADObject | sort Name -Unique
-    $counter = 0
-    foreach($group in $groups){
-        #$counter++
-        #Write-Progress -Activity "Removing Groups" -Status "$($counter): Removing group $($group.Name)" -PercentComplete ($counter/$groups.count*100)
-        #$($group.Name) | Out-File -FilePath $file -Append
-        $($group.name) | Out-File -FilePath $file -Append
-    } #end foreach()
-#>
     ii $file
 }
 
