@@ -111,6 +111,7 @@ SELECT DISTINCT PER.FIRST_NAME AS [GIVENNAME]
         ,ED.SuperID AS [SUPER_ID]
         ,ED.CLASSIFICATION AS [EMPLOYEETYPE_RAW]
         ,PER.PERSON_CHANGE_DATE AS [CHANGE_DATE]
+        ,ED.EFF_TERM_DATE AS [EFF_TERM_DATE]
         ,PER.SSN AS [SSN]
         ,PER.BIRTH_DATE AS [BIRTH_DATE]
 FROM ODS_ST.dbo.S85_PERSON AS PER WITH (NOLOCK)
@@ -137,6 +138,7 @@ LEFT JOIN (
                     ,POS.POS_TITLE
                     ,POS.POS_HRLY_OR_SLRY
                     ,POS.POS_TYPE
+                    ,H.HRP_EFFECT_TERM_DATE AS [EFF_TERM_DATE]
                     ,CLAS.VAL_EXTERNAL_REPRESENTATION AS CLASSIFICATION
                     ,POS.POS_HRLY_OR_SLRY AS [EMPLOYMENT_TYPE]
                     ,CASE POS.POS_HRLY_OR_SLRY
@@ -289,13 +291,13 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
                 }
 
                 $tblSortedResults | 
-                    select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,CHANGEDATE,BIRTH_DATE,SSN | 
+                    select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN | 
                     Export-Csv -Delimiter $delimiter -NoTypeInformation '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
 
                     #if($both){
                 if($PSBoundParameters.ContainsKey('both')){
                     $tblSortedResults | 
-                        select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,CHANGEDATE,BIRTH_DATE,SSN |
+                        select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
                         Export-Csv -Delimiter "," -NoTypeInformation "I:\Continuity\Celaya\AD\New-AD-Account-Template-v2.csv"
                 }
             }
@@ -306,7 +308,7 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
 
         }
         else{
-            '"GIVENNAME","MIDDLENAME","SURNAME","SUFFIX","PREFERREDNAME","EMPLOYEEID","EXTENSIONATTRIBUTE1","SITE","DEPARTMENT","TITLE","TYPE","EMPLOYEETYPE","EMPLOYEETYPE_RAW","CHANGE_DATE"' |
+            '"GIVENNAME","MIDDLENAME","SURNAME","SUFFIX","PREFERREDNAME","EMPLOYEEID","EXTENSIONATTRIBUTE1","SITE","DEPARTMENT","TITLE","TYPE","EMPLOYEETYPE","EMPLOYEETYPE_RAW","EFF_TERM_DATE","CHANGE_DATE"' |
                 Out-File '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
         }
         
@@ -317,7 +319,7 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
         #$objResults = $tblStaffResults | select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SAMACCOUNTNAME | ConvertTo-Csv -NoTypeInformation
         $tmpFile = join-path $env:TEMP "$($(for($i = 0; $i -lt 6; $i++){$(0..9 | Get-Random)}) -join '').csv"
         $tblStaffResults | 
-            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,CHANGE_DATE,BIRTH_DATE,SSN | 
+            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN | 
             Export-Csv -NoTypeInformation -Delimiter "," $tmpFile
         $objResults = Import-Csv $tmpFile
         

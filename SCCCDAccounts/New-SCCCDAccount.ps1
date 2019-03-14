@@ -123,7 +123,7 @@ Function New-SCCCDAccount{
         }
 
         $tempUser = Get-UserInfo $("{0} {1}" -f $($sqlResults.Givenname),$($sqlResults.Surname))
-        $tempUser | Get-Member
+        #$tempUser | Get-Member
         Wait-Debugger
         Write-Host "Teszting"
         write-Host $($tempUser.sAMAccountName)
