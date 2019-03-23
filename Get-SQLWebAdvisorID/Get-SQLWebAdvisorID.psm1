@@ -69,7 +69,7 @@ Function Get-SQLWebAdvisorID{
     Process{
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
-#<#
+<#
         $strQuery = @"
 SELECT DISTINCT PER.FIRST_NAME AS [GIVENNAME]
         ,PER.MIDDLE_NAME AS [MIDDLENAME]
@@ -191,7 +191,7 @@ WHERE (
 --ORDER BY PER.ID
 "@
 #>
-<#
+#<#
 
         $strQuery = @"
 
