@@ -69,7 +69,7 @@ Function Get-SQLWebAdvisorID{
     Process{
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
-<#
+#<#
         $strQuery = @"
 SELECT DISTINCT PER.FIRST_NAME AS [GIVENNAME]
         ,PER.MIDDLE_NAME AS [MIDDLENAME]
@@ -191,7 +191,8 @@ WHERE (
 --ORDER BY PER.ID
 "@
 #>
-#<#
+
+<#
 
         $strQuery = @"
 
@@ -229,7 +230,7 @@ SELECT DISTINCT NE.[GIVENNAME]
             WHEN 'Board of Trustees'			THEN 'Board of Trustees'
     END AS [EMPLOYEETYPE]
     ,NE.EMPLOYEETYPE AS [EMPLOYEETYPE_RAW]
-    ,'' AS [SAMACCOUNTNAME]
+    --,'' AS [SAMACCOUNTNAME]
     ,P.PERSON_CHANGE_DATE AS [CHANGEDATE]
     ,P.SSN
     ,P.BIRTH_DATE
