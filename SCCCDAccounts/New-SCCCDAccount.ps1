@@ -122,7 +122,7 @@ Function New-SCCCDAccount{
         catch{
         }
 
-        $tempUser = Get-UserInfo $("{0} {1}" -f $($sqlResults.Givenname),$($sqlResults.Surname))
+        $tempUser = Get-UserInfo -Anr $("{0} {1}" -f $($sqlResults.Givenname),$($sqlResults.Surname))
         #$tempUser | Get-Member
         Wait-Debugger
         Write-Host "Teszting"
@@ -181,8 +181,19 @@ Write-Host $($(@'
 
         #Wait-Debugger
         #Write-Debug $($str)
-        
-        break
+        if(![string]::IsNullOrEmpty($tempUser.EmployeeID) -and ($tempUser.EmployeeID -ne $sqlResults.EmployeeID)){
+            #Write-Output "Found existing user by name, but has EmployeeID which doesn't match"
+            Write-Output "Found existing user by name, but has EmployeeID which doesn't match"
+            $accountExists = $false
+        }
+        elseif([string]::IsNullOrEmpty($tempUser.EmployeeID)){
+            #Write-Host "Found matching AD user by name, but has no EmployeeID"
+            Write-Host "Found matching AD user by name, but has no EmployeeID"
+            $accountExists = $false
+        }
+        else{
+            break
+        }
     }
 
 
