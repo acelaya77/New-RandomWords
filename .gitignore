@@ -3,6 +3,7 @@
 *.bak
 *.ignore
 *.old
+*.tar.gz
 [Tt]ranscripts/
 [Tt]ranscript*/
 [Aa]rchive[sd]/
