@@ -43,7 +43,7 @@ Begin{
     #$DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
 
 	[string]$txtUser = $user
-    
+    $date = get-date
 	if(gv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){rv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
 
 	Try{
@@ -70,11 +70,11 @@ Begin{
 		Write-Verbose "Error: $_"
 		break
 	}
-    if(gv -Name mail -ErrorAction SilentlyContinue){rv -Name mail -Force -ErrorAction SilentlyContinue}
+    if(Get-Variable -Name mail -ErrorAction SilentlyContinue){rv -Name mail -ErrorAction SilentlyContinue}
     
-    if(($null -ne $a.Mail) -and ($a.Mail -notmatch "my.scccd.edu")){
+    if(!([string]::IsNullOrEmpty($a.Mail)) -and ($a.Mail -notmatch "my.scccd.edu")){ #if(($null -ne $a.Mail) -and ($a.Mail -notmatch "my.scccd.edu")){
         Try{
-            $mail = Get-Mailbox $user.SamAccountName -DomainController $DomainController
+            $mail = Get-Mailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop
         }
         Catch{
             Write-Verbose "Error:"
@@ -88,7 +88,7 @@ Begin{
 
 	$strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
     $strFilePath2 = (Join-Path "C:\Users\ac007\TrackIT-Export" "Logs")
-	$strFileName = "{0}_{1}_{2}_{3}_{4}_update.txt" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower()
+	$strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower(),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
     $file = (Join-Path $strFilePath $strFileName)
     $file2 = (Join-Path $strFilePath2 $strFileName)
 
@@ -106,12 +106,13 @@ Begin{
         }
          
 		if($proxyAddresses.count -gt 0){
-			Write-Verbose "$([string]::join(";",$($proxyAddresses)))"
-			Write-Host $null
+			#Write-Verbose "$([string]::join(";",$($proxyAddresses)))"
+			#Write-Host $null
 		}
 		else{
-			Write-Verbose "$([string]::join(';',$($user.Mail)))"
-			Write-Host $null
+			#Write-Verbose "$([string]::join(';',$($user.Mail)))"
+			#Write-Host $null
+            $proxyAddresses = $null
 		}
 	}
 	else{
@@ -124,8 +125,8 @@ Begin{
 			$strProxy += "ProxyAddress$($i)........: $($proxyAddresses[$i - 1])"
 		}
 	}
-	elseif($proxyAddresses -eq 0){
-		$strProxy = $null
+	elseif(($proxyAddresses -eq 0) -or ($proxyAddresses -eq $null)){
+		$strProxy = "ProxyAddress.........: $null"
 	}
 	else{
 		$strProxy = "ProxyAddress.........: $proxyAddresses"
@@ -135,11 +136,11 @@ Begin{
 Process{
 
 	write-verbose $(if($update){"$true"}else{"$false"})
-	Switch($update){
-		$true {
+	#Switch($update){
+	#	$true {
 			$fileOut = @"
-$(get-date -f 'MM-dd-yyyy HH:mm:ss')
-Updated Account Information:
+$(get-date $date -f 'MM-dd-yyyy HH:mm:ss')
+$(if($PSBoundParameters.ContainsKey('update')){"Updated"}else{"New"}) Account Information:
 
 SamAccountName.......: $($user.samAccountName)
 $(Switch($ShowPass){
@@ -172,9 +173,8 @@ wWWHomePage..........: $(if($user.wWWHomePage -ne $null){$($($user.wWWHomePage).
 Path.................: $path
 
 "@
-		$strFileName = "{0}_{1}_{2}_{3}_{4}_update.txt" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.Givenname.ToLower(),$user.Surname.ToLower()
-		}#end $true Case
-		Default {
+#		}#end $true Case
+<#		Default {
 		$fileOut = @"
 $(get-date -f 'MM-dd-yyyy HH:mm:ss')
 New Account Information:
@@ -212,7 +212,7 @@ Path.................: $path
 "@
 
 		}#end $false case
-	}#end switch($update){}
+	}#end switch($update){}#>
 
 #$fileOut | Out-File -FilePath "$($strFilePath)\$($strFileName)" -Force
 
