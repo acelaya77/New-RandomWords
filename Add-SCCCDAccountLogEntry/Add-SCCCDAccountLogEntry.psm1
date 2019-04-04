@@ -38,52 +38,41 @@ Param(
 )
 
 Begin{
-    #$DomainController = $(Get-DomainController)[0].Name
-    #$DomainController
-    #$DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
-
 	[string]$txtUser = $user
     $date = get-date
 	if(gv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){rv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
 
 	Try{
-		$user = Get-ADUser $txtUser -Properties * -ErrorAction Stop -Server $DomainController
-
-	}
+        $user = Get-ADUser $txtUser -Properties * -ErrorAction Stop -Server $DomainController }
 	Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
 		 Write-Verbose "Error: User not found exception"
 		 Write-Verbose $_
-		 break
-	}
+		 break }
 	Catch{
 		Write-Verbose "Error: $_"
-		break
-	}
+		break }
 
-	Try{ $a = Get-ADUser $user.SamAccountName -Properties Mail,ProxyAddresses -ErrorAction Stop -Server $DomainController}
+	Try{ 
+        $a = Get-ADUser $user.SamAccountName -Properties Mail,ProxyAddresses -ErrorAction Stop -Server $DomainController }
 	Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
 		 Write-Verbose "Error: User not found in AD"
 		 Write-Verbose $_
-		 break
-	}
+		 break }
 	Catch{ 
 		Write-Verbose "Error: $_"
-		break
-	}
+		break }
+    
     if(Get-Variable -Name mail -ErrorAction SilentlyContinue){rv -Name mail -ErrorAction SilentlyContinue}
     
-    if(!([string]::IsNullOrEmpty($a.Mail)) -and ($a.Mail -notmatch "my.scccd.edu")){ #if(($null -ne $a.Mail) -and ($a.Mail -notmatch "my.scccd.edu")){
+    if(!([string]::IsNullOrEmpty($a.Mail)) -and ($a.Mail -notmatch "my.scccd.edu")){
         Try{
             $mail = Get-Mailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop
-        }
+            $CASmail = Get-CASMailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop }
         Catch{
             Write-Verbose "Error:"
-            Write-Verbose $_
-        }
+            Write-Verbose $_ }
     }
-    else{
-        #$false
-    }
+
 	$proxyAddresses = @()
 
 	$strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
@@ -94,61 +83,34 @@ Begin{
 
 	$path = [string]::join(',',$($user.DistinguishedName.split(',')[1..$($($user.DistinguishedName.split(',')).count)]))
 
-	#$accountPassword = Get-DefaultPassword -User $user.SamAccountName
-    #$accountPassword = $password
-
-	#if($a.ProxyAddresses.count -gt 0){
-    if($mail.EmailAddresses.count -gt 1){
+    if($($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).count -ge 1){
         Write-Verbose "Enumerating filtered email addresses"
-        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')})
-        if($proxyAddresses.count -gt 0){
-            $proxyAddresses = $proxyAddresses.replace('smtp:','')
-        }
-         
-		if($proxyAddresses.count -gt 0){
-			#Write-Verbose "$([string]::join(";",$($proxyAddresses)))"
-			#Write-Host $null
-		}
-		else{
-			#Write-Verbose "$([string]::join(';',$($user.Mail)))"
-			#Write-Host $null
-            $proxyAddresses = $null
-		}
-	}
+        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).AddressString }
 	else{
-		$proxyAddresses = $null
-	}
+		$proxyAddresses = $null }
 
 	$strProxy = @()
 	if($proxyAddresses.count -gt 1){
 		for($i=1;$i -lt $($proxyAddresses.count + 1);$i++){
 			$strProxy += "ProxyAddress$($i)........: $($proxyAddresses[$i - 1])"
-		}
-	}
+		} }
 	elseif(($proxyAddresses -eq 0) -or ($proxyAddresses -eq $null)){
-		$strProxy = "ProxyAddress.........: $null"
-	}
+		$strProxy = "ProxyAddress.........: $null" }
 	else{
-		$strProxy = "ProxyAddress.........: $proxyAddresses"
-	}
+		$strProxy = "ProxyAddress.........: $proxyAddresses" }
 }#end Begin{}
 
 Process{
 
 	write-verbose $(if($update){"$true"}else{"$false"})
-	#Switch($update){
-	#	$true {
-			$fileOut = @"
+	$fileOut = @"
 $(get-date $date -f 'MM-dd-yyyy HH:mm:ss')
 $(if($PSBoundParameters.ContainsKey('update')){"Updated"}else{"New"}) Account Information:
 
 SamAccountName.......: $($user.samAccountName)
 $(Switch($ShowPass){
-        $true{
-            "Password.............: $Password " # $($accountPassword.Text)"
-        }
-        Default{""}
-})
+        $true{ "Password.............: $Password " }
+        Default{""} })
 
 whenCreated..........: $($user.whenCreated)
 UserPrincipalName....: $($user.UserPrincipalName)
@@ -157,12 +119,20 @@ GivenName............: $($user.GivenName)
 Surname..............: $($user.Surname)
 Suffix...............: $($user.generationQualifier)
 DisplayName..........: $($user.DisplayName)
+SimpleDisplayName....: $($mail.SimpleDisplayName)
 EmployeeID...........: $($user.EmployeeID)
 ExtensionAttribute1..: $($user.ExtensionAttribute1)
+Description..........: $($user.Description)
+Title................: $($user.Title)
 Mail.................: $($mail.PrimarySmtpAddress)
 $(if($strProxy){$([string]::join("`r`n",$strProxy))}else{"ProxyAddress.........: "})
-Description..........: $($user.Description)
-Title................: $($user.Title)
+ActiveSyncEnabled....: $($CASmail.ActiveSyncEnabled)
+OWAEnabled...........: $($CASmail.OWAEnabled)
+ECPEnabled...........: $($CASmail.ECPEnabled)
+PopEnabled...........: $($CASmail.PopEnabled)
+ImapEnabled..........: $($CASmail.ImapEnabled)
+MAPIEnabled..........: $($CASmail.MAPIEnabled)
+OWAMailboxPolicy.....: $($CASmail.OWAMailboxPolicy)
 Company..............: $($user.Company)
 StreetAddress........: $($user.StreetAddress)
 City.................: $($user.City)
@@ -173,48 +143,6 @@ wWWHomePage..........: $(if($user.wWWHomePage -ne $null){$($($user.wWWHomePage).
 Path.................: $path
 
 "@
-#		}#end $true Case
-<#		Default {
-		$fileOut = @"
-$(get-date -f 'MM-dd-yyyy HH:mm:ss')
-New Account Information:
-
-SamAccountName.......: $($user.samAccountName)
-$(Switch($ShowPass){
-        $true{
-            "AccountPassword......: $Password" #$($accountPassword.Text)"}
-        }
-        Default{""}
-})
-
-whenCreated..........: $($user.whenCreated)
-UserPrincipalName....: $($user.UserPrincipalName)
-Name.................: $($user.Name)
-GivenName............: $($user.GivenName)
-Surname..............: $($user.Surname)
-Suffix...............: $($user.generationQualifier)
-DisplayName..........: $($user.DisplayName)
-EmployeeID...........: $($user.EmployeeID)
-ExtensionAttribute1..: $($user.ExtensionAttribute1)
-Mail.................: $($mail.PrimarySMTPAddress)
-$(if($strProxy){$([string]::join("`r`n",$strProxy))}else{"ProxyAddress.........: "})
-Description..........: $($user.Description)
-Title................: $($user.Title)
-Company..............: $($user.Company)
-StreetAddress........: $($user.StreetAddress)
-City.................: $($user.City)
-State................: $($user.State)
-PostalCode...........: $($user.PostalCode)
-Department...........: $($user.Department)
-wWWHomePage..........: $(if($user.wWWHomePage -ne $null){$($($user.wWWHomePage).replace(' ',''))}else{$null})
-Path.................: $path
-
-"@
-
-		}#end $false case
-	}#end switch($update){}#>
-
-#$fileOut | Out-File -FilePath "$($strFilePath)\$($strFileName)" -Force
 
 $stream = [system.io.streamwriter]::new($file)
 $stream2 = [system.io.streamwriter]::new($file2)
@@ -229,12 +157,6 @@ Finally{
     $stream.Close()
     $stream2.Close()
 }
-
-#$strFileCopy = "{0}-{1}-{2}-{3}.log" -f $user.SamAccountName, $(Switch($user.EmployeeID){{$null -ne $_}{$_};Default{$null}}), $(Switch($user.GivenName){{$null -ne $_}{$_.Replace(" ","-").ToLower()};Default{$null}}),$(Switch($user.Surname){{$null -ne $_}{$_.Replace(" ","-").Tolower()};Default{}})
-#$thisCopy = Copy-Item $file -Destination (Join-Path "C:\Users\ac007\TrackIT-Export\" $strFileCopy) -PassThru | Select-Object -ExpandProperty FullName
-#$thisCopy = Copy-Item $file -Destination (Join-Path "C:\Users\ac007\TrackIT-Export\Logs" $strFileName) -PassThru | Select-Object -ExpandProperty FullName
-#np++ (Join-Path "C:\Users\ac007\TrackIT-Export\" $strFileCopy)
-#np++ $thisCopy
 
 }#end Process{}
 
