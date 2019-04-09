@@ -57,7 +57,7 @@ Function Get-SQLWebAdvisorID{
         #$csvOutput = gci (join-path '\\sdofs1-08e\is$\Continuity\Celaya\AD\' 'WebAdvisorID.csv')
         $csvOutput = (join-path $env:USERPROFILE\Desktop 'WebAdvisorID.csv')
         [string]$Server = "sdodw1"
-        [string]$StaffDatabase = "DatatelInformation"
+        [string]$StaffDatabase = "ODS_HR"
         $StaffConnection = New-Object System.Data.SqlClient.SqlConnection
         $StaffConnection.ConnectionString = "server='$server';database='$StaffDatabase';trusted_connection=true;"
         $StaffConnection.Open()
@@ -69,7 +69,67 @@ Function Get-SQLWebAdvisorID{
     Process{
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
-#<#
+
+        $strQuery = @"
+SELECT DISTINCT  ED.ID AS [EmployeeID]
+				,ED.FIRST_NAME AS [Givenname]
+                ,ED.LAST_NAME AS [Surname]
+                ,PP.PERSON_PIN_USER_ID AS [ExtensionAttribute1]
+				,PER.HRP_CHK_NAME
+                ,ED.POS_TITLE AS [TITLE]
+                ,ED.EMPLOYMENT_TYPE AS [Employment_Type]
+                ,ED.CLASSIFICATION
+                ,LOC.LOC_DESC
+                ,ED.COLLEGE
+                ,ED.POS_DEPT
+                ,ED.DEPARTMENT
+                ,ED.POSITION_ID
+--                ,PER.HRP_PRI_CAMPUS_LOCATION
+--                ,ED.END_DATE
+--                ,ED.RK
+    FROM (
+            SELECT   ID
+                    ,POSITION_ID
+                    ,FIRST_NAME
+                    ,LAST_NAME
+                    ,PREFERRED_NAME
+                    ,POS_TITLE
+                    ,EMPLOYMENT_TYPE
+                    ,CLASSIFICATION
+                    ,POS_DEPT
+                    ,DEPARTMENT
+                    ,[END_DATE]
+                    ,COLLEGE
+                    ,RANK() OVER (
+                        PARTITION BY ID ORDER BY [END_DATE] DESC
+                        ) AS RK
+            FROM ODS_HR.HR.vwEmployeeDemographics WITH (NOLOCK)
+        ) AS ED
+    LEFT JOIN ODS_HR.dbo.S85_POSITION AS POS WITH (NOLOCK)
+        ON ED.POSITION_ID = POS.POSITION_ID
+    LEFT JOIN [ODS_HR].[dbo].[S85_HRPER] AS PER WITH (NOLOCK)
+        ON ED.ID = PER.HRPER_ID
+    LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
+		ON PP.PERSON_PIN_ID = PER.HRPER_ID
+	LEFT JOIN [ODS_ST].dbo.S85_LOCATIONS AS LOC WITH (NOLOCK)
+        ON PER.HRP_PRI_CAMPUS_LOCATION = LOC.LOCATIONS_ID
+    WHERE ED.RK = 1
+        --AND ED.END_DATE = GETDATE()
+        AND ED.END_DATE > DATEADD(d,-1,GETDATE())
+        /*AND (
+                ED.CLASSIFICATION <> 'Board of Trustees'
+            AND ED.CLASSIFICATION <> 'Classified Student Aide'
+            AND ED.CLASSIFICATION <> 'Personnel Commissioner'
+           -- AND ED.CLASSIFICATION <> 'Classified Non-Bargaining'
+        )*/
+    AND (
+        $($EmployeeIDs | Select-Object -First 1 | %{"`t`t`t   ED.ID = `'$($_)`'"})
+        $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR ED.ID = `'$($_)`'`r`n"})
+    )
+    ORDER BY EmployeeID
+"@
+
+<#
         $strQuery = @"
 SELECT DISTINCT PER.FIRST_NAME AS [GIVENNAME]
         ,PER.MIDDLE_NAME AS [MIDDLENAME]
@@ -342,7 +402,6 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
 
 <#
 
-Remove-Module Get-SQLWebAdvisorID
-Import-Module Get-SQLWebAdvisorID
+Remove-Module Get-SQLWebAdvisorID; Import-Module Get-SQLWebAdvisorID
 
 #>
