@@ -204,13 +204,13 @@ Write-Host $($(@'
     }
 
     if(-not $PSBoundParameters.ContainsKey('IsStudent')){
-        if(($sqlResults.EMPLOYEETYPE -eq $trackItInfo.EmployeeType -and $sqlResults.DEPARTMENT -ne "")){
+        if(($sqlResults.EMPLOYEETYPE -eq $trackItInfo.EmployeeType -and ![string]::IsNullOrEmpty($sqlResults.DEPARTMENT))) {
             $EmployeeType = $sqlResults.EMPLOYEETYPE
         }
-        elseif(($null -ne $trackItInfo.EmployeeType) -and ($trackItInfo.EmployeeType -ne "")){
+        elseif(![string]::IsNullOrEmpty($trackItInfo.EmployeeType)){
             $EmployeeType = $trackItInfo.EmployeeType
         }
-        elseif(($sqlResults.CHANGEDATE -gt $($(get-date).AddDays(-30))) -and ("" -ne $sqlResults.EMPLOYEETYPE)){
+        elseif(($sqlResults.CHANGEDATE -gt $($(get-date).AddDays(-30))) -and ![string]::IsNullOrEmpty($sqlResults.EMPLOYEETYPE)) {
             $EmployeeType = $sqlResults.EMPLOYEETYPE
         }
         else{
@@ -220,6 +220,18 @@ Write-Host $($(@'
     else{
         $EmployeeType = "Student"
     }
+
+    if($EmployeeType -notin @("Classified","Management","Faculty","Adjunct","Student")){
+        Switch($EmployeeType){
+            {$_ -in @("Intern","Non-Bargaining")}{
+                $EmployeeType = "Classified"
+            }
+            Default{
+                $EmployeeType = $(Read-Host -Prompt "Employee type? (Classified,Management,Faculty,Adjunct,Student)")
+            }
+        }
+    }
+
     Write-Verbose $EmployeeType
 
     #<#
@@ -480,13 +492,16 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     Write-Debug $($mailboxSplat.PrimarySMTPAddress)
                     Enable-Mailbox @mailboxSplat -DomainController $DomainController | Out-Null
                     
+                    $tmpCounter = 0
                     do{
-                        Wait-Debugger
+                        $tmpCounter++
+                        if($tmpCounter -gt 3){Wait-Debugger}
                         $tmpMailbox = $Null
                         $tmpMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
                     }
                     While([string]::IsNullOrEmpty($tmpMailbox.Alias))
-                    
+                    rv -Name tmpCounter -ErrorAction SilentlyContinue
+
                     Try{
                         Write-Host "$($tmpMailbox.Alias)"
                         Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $DomainController -ErrorAction Stop
