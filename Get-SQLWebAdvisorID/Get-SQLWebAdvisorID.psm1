@@ -34,7 +34,7 @@ Function Get-SQLWebAdvisorID{
     Begin{
 
         Switch($InputFile){
-            
+
             {($PSBoundParameters.ContainsKey('InputFile')) -and $InputFile}{
                 $InputFile = Get-Item (Resolve-Path $InputFile)
                 $EmployeeIDs = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
@@ -50,7 +50,7 @@ Function Get-SQLWebAdvisorID{
             {-not($PSBoundParameters.ContainsKey('InputFile'))}{
                 $EmployeeIDs = $($EmployeeIDs.Replace("'","") -split ",")
                 $strEmployeeIDs = [string]::join(',',$($EmployeeIDs | Foreach-Object{"`'$_`'"}))
-                $strEmployeeIDs = $strEmployeeIDs.replace("''","'")                
+                $strEmployeeIDs = $strEmployeeIDs.replace("''","'")
             }#end case
         }#end switch
 
@@ -71,21 +71,54 @@ Function Get-SQLWebAdvisorID{
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
 
         $strQuery = @"
-SELECT DISTINCT  ED.ID AS [EmployeeID]
-				,ED.FIRST_NAME AS [Givenname]
-                ,ED.LAST_NAME AS [Surname]
-                ,PP.PERSON_PIN_USER_ID AS [ExtensionAttribute1]
+SELECT DISTINCT  ED.FIRST_NAME AS [Givenname]
+                ,PERS.MIDDLE_NAME AS [MiddleName]
+				,ED.LAST_NAME AS [Surname]
+				,PERS.SUFFIX AS [Suffix]
+				,PERS.PREFERRED_NAME AS [PreferredName]
+                ,ED.ID AS [EmployeeID]
+				,PP.PERSON_PIN_USER_ID AS [ExtensionAttribute1]
 				,PER.HRP_CHK_NAME
-                ,ED.POS_TITLE AS [TITLE]
+				,EMAILDST.PERSON_EMAIL_ADDRESSES AS [EMAIL_DST]
+				,EMAILINT.PERSON_EMAIL_ADDRESSES AS [EMAIL_INT]
+				/*
+				,EMAILPD.PERSON_EMAIL_ADDRESSES AS [EMAIL_PD]
+				,EMAILSCH.PERSON_EMAIL_ADDRESSES AS [EMAIL_SCH]
+				,EMAILSC1.PERSON_EMAIL_ADDRESSES AS [EMAIL_SC1]
+				*/
+				,ED.POS_TITLE AS [TITLE]
                 ,ED.EMPLOYMENT_TYPE AS [Employment_Type]
-                ,ED.CLASSIFICATION
-                ,LOC.LOC_DESC
-                ,ED.COLLEGE
-                ,ED.POS_DEPT
+				,ED.CLASSIFICATION AS [EMPLOYEETYPE_RAW]
+                ,CASE ED.CLASSIFICATION
+					WHEN 'Certificated Contractual'		THEN 'Faculty'
+					WHEN 'Certificated Hourly'			THEN 'Adjunct'
+					WHEN 'Certificated Management'		THEN 'Management'
+					WHEN 'Classified - Flexible'		THEN 'Classified'
+					WHEN 'Classified Half-Time'			THEN 'Classified'
+					WHEN 'Classified Regular'			THEN 'Classified'
+					WHEN 'Classified - Seasonal'		THEN 'Classified'
+					WHEN 'Classified - Regular 75%'		THEN 'Classified'
+					WHEN 'Classified Non-Bargaining'	THEN 'Classified'
+					WHEN 'Confidential'					THEN 'Classified'
+					WHEN 'Classified Perm Part-Time'	THEN 'Classified'
+					WHEN 'Classified Student Aide'		THEN 'Student'
+					WHEN 'College Work Study'			THEN 'Student'
+					WHEN 'Classified Mgmt Temporary'	THEN 'Management'
+					WHEN 'Certificated Mgmt Tempora'	THEN 'Management'
+					WHEN 'Personnel Commissioner'		THEN 'Management'
+					WHEN 'Classified Management'		THEN 'Management'
+					WHEN 'Board of Trustees'			THEN 'Board of Trustees'
+				 END AS [EMPLOYEETYPE]
+                ,LOC.LOC_DESC AS [Loc_Desc]
+				,ED.COLLEGE AS [COLLEGE]
+                ,ED.POS_LOCATION AS [SITE]
+                --,ED.POS_DEPT
                 ,ED.DEPARTMENT
                 ,ED.POSITION_ID
 --                ,PER.HRP_PRI_CAMPUS_LOCATION
---                ,ED.END_DATE
+                ,ED.END_DATE AS [EFF_TERM_DATE]
+				,PERS.BIRTH_DATE
+				,PERS.SSN
 --                ,ED.RK
     FROM (
             SELECT   ID
@@ -94,6 +127,7 @@ SELECT DISTINCT  ED.ID AS [EmployeeID]
                     ,LAST_NAME
                     ,PREFERRED_NAME
                     ,POS_TITLE
+                    ,POS_LOCATION
                     ,EMPLOYMENT_TYPE
                     ,CLASSIFICATION
                     ,POS_DEPT
@@ -109,22 +143,35 @@ SELECT DISTINCT  ED.ID AS [EmployeeID]
         ON ED.POSITION_ID = POS.POSITION_ID
     LEFT JOIN [ODS_HR].[dbo].[S85_HRPER] AS PER WITH (NOLOCK)
         ON ED.ID = PER.HRPER_ID
-    LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
+    LEFT JOIN ODS_ST.dbo.S85_PERSON AS PERS WITH (NOLOCK)
+		ON PERS.ID = ED.ID
+	/*
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAIL WITH (NOLOCK)
+		ON EMAIL.ID = PER.HRPER_ID
+	*/
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAILDST WITH (NOLOCK)
+		ON EMAILDST.ID = ED.ID AND EMAILDST.PERSON_EMAIL_TYPES = 'DST'
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAILINT WITH (NOLOCK)
+		ON EMAILINT.ID = ED.ID AND EMAILINT.PERSON_EMAIL_TYPES = 'INT'
+	/*
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAILSCH WITH (NOLOCK)
+		ON EMAILSCH.ID = ED.ID AND EMAILSCH.PERSON_EMAIL_TYPES = 'SCH'
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAILSC1 WITH (NOLOCK)
+		ON EMAILSC1.ID = ED.ID AND EMAILSC1.PERSON_EMAIL_TYPES = 'SC1'
+	LEFT JOIN ODS_ST.dbo.S85_PEOPLE_EMAIL AS EMAILPD WITH (NOLOCK)
+		ON EMAILPD.ID = ED.ID AND EMAILPD.PERSON_EMAIL_TYPES = 'PD'
+	*/
+	LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
 		ON PP.PERSON_PIN_ID = PER.HRPER_ID
 	LEFT JOIN [ODS_ST].dbo.S85_LOCATIONS AS LOC WITH (NOLOCK)
         ON PER.HRP_PRI_CAMPUS_LOCATION = LOC.LOCATIONS_ID
     WHERE ED.RK = 1
         --AND ED.END_DATE = GETDATE()
-        AND ED.END_DATE > DATEADD(d,-1,GETDATE())
-        /*AND (
-                ED.CLASSIFICATION <> 'Board of Trustees'
-            AND ED.CLASSIFICATION <> 'Classified Student Aide'
-            AND ED.CLASSIFICATION <> 'Personnel Commissioner'
-           -- AND ED.CLASSIFICATION <> 'Classified Non-Bargaining'
-        )*/
-    AND (
-        $($EmployeeIDs | Select-Object -First 1 | %{"`t`t`t   ED.ID = `'$($_)`'"})
-        $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR ED.ID = `'$($_)`'`r`n"})
+        --AND ED.END_DATE > DATEADD(d,-1,GETDATE())
+
+        AND (
+        $($EmployeeIDs | Select-Object -First 1 | Foreach-Object{"`t`t`t   ED.ID = `'$($_)`'"})
+        $($EmployeeIDs | Select-Object -Skip 1 | ForEach-Object{"`t`t`tOR ED.ID = `'$($_)`'`r`n"})
     )
     ORDER BY EmployeeID
 "@
@@ -178,13 +225,13 @@ FROM ODS_ST.dbo.S85_PERSON AS PER WITH (NOLOCK)
 LEFT JOIN [ODS_ST].dbo.S85_PEOPLE_EMAIL AS EMAIL1 WITH (NOLOCK) ON EMAIL1.ID = PER.ID
     AND EMAIL1.PERSON_EMAIL_TYPES = 'DST'
 LEFT JOIN [ODS_ST].dbo.S85_PEOPLE_EMAIL AS EMAIL2 WITH (NOLOCK) ON EMAIL2.ID = PER.ID
-    AND EMAIL2.PERSON_EMAIL_TYPES = 'INT' 
+    AND EMAIL2.PERSON_EMAIL_TYPES = 'INT'
 LEFT JOIN [ODS_ST].dbo.S85_PEOPLE_EMAIL AS EMAIL3 WITH (NOLOCK) ON EMAIL3.ID = PER.ID
-    AND EMAIL3.PERSON_EMAIL_TYPES = 'SCH' 
+    AND EMAIL3.PERSON_EMAIL_TYPES = 'SCH'
 LEFT JOIN [ODS_ST].dbo.S85_PEOPLE_EMAIL AS EMAIL4 WITH (NOLOCK) ON EMAIL4.ID = PER.ID
-    AND EMAIL4.PERSON_EMAIL_TYPES = 'SC1' 
+    AND EMAIL4.PERSON_EMAIL_TYPES = 'SC1'
 LEFT JOIN [ODS_ST].dbo.S85_PEOPLE_EMAIL AS EMAIL5 WITH (NOLOCK) ON EMAIL5.ID = PER.ID
-    AND EMAIL5.PERSON_EMAIL_TYPES = 'PD' 
+    AND EMAIL5.PERSON_EMAIL_TYPES = 'PD'
 LEFT JOIN (
             SELECT DISTINCT PSTAT.PERSTAT_HRP_ID AS ID
                     ,P.FIRST_NAME
@@ -351,13 +398,13 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
                     $tblSortedResults += $tblStaffResults.Select("EmployeeID = `'$id`'")
                 }
 
-                $tblSortedResults | 
-                    select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN | 
+                $tblSortedResults |
+                    select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
                     Export-Csv -Delimiter $delimiter -NoTypeInformation '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
 
                     #if($both){
                 if($PSBoundParameters.ContainsKey('both')){
-                    $tblSortedResults | 
+                    $tblSortedResults |
                         select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
                         Export-Csv -Delimiter "," -NoTypeInformation "I:\Continuity\Celaya\AD\New-AD-Account-Template-v2.csv"
                 }
@@ -372,18 +419,18 @@ $($EmployeeIDs | Select-Object -Skip 1 | %{"`t`t`tOR NE.[EMPLOYEEID] = `'$($_)`'
             '"GIVENNAME","MIDDLENAME","SURNAME","SUFFIX","PREFERREDNAME","EMPLOYEEID","EXTENSIONATTRIBUTE1","SITE","DEPARTMENT","TITLE","TYPE","EMPLOYEETYPE","EMPLOYEETYPE_RAW","EFF_TERM_DATE","CHANGE_DATE"' |
                 Out-File '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
         }
-        
+
         if($PSBoundParameters.ContainsKey("UpdateFiles")){
             np++ '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
         }
 
         #$objResults = $tblStaffResults | select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SAMACCOUNTNAME | ConvertTo-Csv -NoTypeInformation
         $tmpFile = join-path $env:TEMP "$($(for($i = 0; $i -lt 6; $i++){$(0..9 | Get-Random)}) -join '').csv"
-        $tblStaffResults | 
-            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN | 
+        $tblStaffResults |
+            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN |
             Export-Csv -NoTypeInformation -Delimiter "," $tmpFile
         $objResults = Import-Csv $tmpFile
-        
+
         #np++ $tmpFile
 
         #Remove-Item $tmpFile -Confirm:$false -Force

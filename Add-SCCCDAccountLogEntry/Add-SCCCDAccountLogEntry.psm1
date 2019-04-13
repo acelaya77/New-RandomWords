@@ -16,8 +16,8 @@ UPDATED     : 11-30-2018
 VERSION     : 1.4
 
 
-Ver EntryDate  Editor Description    
---- ---------  ------ -----------    
+Ver EntryDate  Editor Description
+--- ---------  ------ -----------
 1.0 11-08-2017 ac007  INITIAL RELEASE
 1.1 01-29-2018 ac007  Updated user object creation
 1.2 03-12-2018 ac007  Added SMTP processing; Updated header.
@@ -34,13 +34,14 @@ Param(
 	[string]$user,
     [switch]$ShowPass,
 	[switch]$update = $false,
-    [string]$password
+    [string]$pw,
+    [switch]$extendedMailInfo
 )
 
 Begin{
 	[string]$txtUser = $user
     $date = get-date
-	if(gv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){rv -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
+	if(Get-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){Remove-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
 
 	Try{
         $user = Get-ADUser $txtUser -Properties * -ErrorAction Stop -Server $DomainController }
@@ -52,18 +53,18 @@ Begin{
 		Write-Verbose "Error: $_"
 		break }
 
-	Try{ 
+	Try{
         $a = Get-ADUser $user.SamAccountName -Properties Mail,ProxyAddresses -ErrorAction Stop -Server $DomainController }
 	Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
 		 Write-Verbose "Error: User not found in AD"
 		 Write-Verbose $_
 		 break }
-	Catch{ 
+	Catch{
 		Write-Verbose "Error: $_"
 		break }
-    
-    if(Get-Variable -Name mail -ErrorAction SilentlyContinue){rv -Name mail -ErrorAction SilentlyContinue}
-    
+
+    if(Get-Variable -Name mail -ErrorAction SilentlyContinue){Remove-Variable -Name mail -ErrorAction SilentlyContinue}
+
     if(!([string]::IsNullOrEmpty($a.Mail)) -and ($a.Mail -notmatch "my.scccd.edu")){
         Try{
             $mail = Get-Mailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop
@@ -77,7 +78,13 @@ Begin{
 
 	$strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
     $strFilePath2 = (Join-Path "C:\Users\ac007\TrackIT-Export" "Logs")
-	$strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower(),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+	Switch($user.EmployeeID){
+        {[string]::IsNullOrEmpty($_)}{
+            $strFileName = "{0}_{1}_none_{2}_{3}{4}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$(if([string]::IsNullOrEmpty($user.GivenName)){"none"}else{$user.GivenName.ToLower()}),$(if([string]::IsNullOrEmpty($user.Surname)){"none"}else{$user.Surname.ToLower()}),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+        }
+        Default{$strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower(),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})}
+    }
+
     $file = (Join-Path $strFilePath $strFileName)
     $file2 = (Join-Path $strFilePath2 $strFileName)
 
@@ -102,6 +109,17 @@ Begin{
 
 Process{
 
+    if($PSBoundParameters.ContainsKey('extendedMailInfo')){
+        $extended = Get-MailBoxInfo $user.sAMAccountName
+
+        $extended.psobject.properties.where({ $_.Name -like "SendAs*"}) | ForEach-Object {
+            $strAppend += @"
+$($_.Name)..............: $($_.Value)
+
+"@
+        }
+    }
+
 	write-verbose $(if($update){"$true"}else{"$false"})
 	$fileOut = @"
 $(get-date $date -f 'MM-dd-yyyy HH:mm:ss')
@@ -109,7 +127,7 @@ $(if($PSBoundParameters.ContainsKey('update')){"Updated"}else{"New"}) Account In
 
 SamAccountName.......: $($user.samAccountName)
 $(Switch($ShowPass){
-        $true{ "Password.............: $Password " }
+        $true{ "Password.............: $pw " }
         Default{""} })
 
 whenCreated..........: $($user.whenCreated)
@@ -141,6 +159,11 @@ State................: $($user.State)
 PostalCode...........: $($user.PostalCode)
 wWWHomePage..........: $(if($user.wWWHomePage -ne $null){$($($user.wWWHomePage).replace(' ',''))}else{$null})
 Path.................: $path
+$(if([string]::IsNullOrEmpty($strAppend)){
+"SendAs...............: "
+}else{
+    $strAppend
+})
 
 "@
 
@@ -168,4 +191,3 @@ Remove-Module Add-SCCCDAccountLogEntry
 Import-Module Add-SCCCDAccountLogEntry
 
 #>
-

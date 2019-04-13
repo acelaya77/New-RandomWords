@@ -240,11 +240,12 @@ Write-Host $($(@'
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
+    <#
     elseif(($(get-date $($sqlResults.CHANGE_DATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
         Write-Debug -Message "SQL Results are blank or NULL for DEPARTMENT or ChangeDate too old"
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
-    }
+    }#>
     #elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
     elseif(($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like "")){
         Write-Debug -Message "SQL Results for DEPARTMENT are blank or NULL"
