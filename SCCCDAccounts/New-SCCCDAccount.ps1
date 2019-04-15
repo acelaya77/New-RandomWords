@@ -33,6 +33,7 @@ Function New-SCCCDAccount{
         ,[Parameter(Mandatory=$false,ParameterSetName='Initialize')][switch]$Initialize = $false
         ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$DebugMe = $false
         ,[Parameter(Mandatory=$false,ParameterSetName='Default')][string]$PreferredName
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$NoPosition
     )
 
     Try{
@@ -84,7 +85,14 @@ Function New-SCCCDAccount{
     $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
     $date = get-date
     $password = New-RandomPassword -length 10
-    $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID
+    Switch($PSBoundParameters.ContainsKey('NoPosition')){
+        $true{
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID -NoPosition
+        }
+        Default{
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID
+        }
+    }
     [bool]$accountExists = Test-ADAccountExist -EmployeeID $EmployeeID
     $trackItInfo = Get-TrackItInfo -EmployeeID $EmployeeID
     $strSamAccountName = Get-NextSamAccountName -Initials $("{0}{1}" -f $sqlResults.GIVENNAME.Substring(0,1).ToLower(),$sqlResults.SURNAME.Substring(0,1).ToLower())
