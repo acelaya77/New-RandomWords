@@ -24,7 +24,7 @@ Function Get-ExchangeDatabase {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet("FCC", "FC", "CCC", "CC", "RC", "MC", "DO", "CTC", "OC", "HC")]
+        [ValidateSet("FCC", "FC", "CCC", "CC", "RC", "MC", "DO", "CTC", "OC", "HC", "DN")]
         [string]$Site,
 
         [Parameter(Mandatory = $true)]
