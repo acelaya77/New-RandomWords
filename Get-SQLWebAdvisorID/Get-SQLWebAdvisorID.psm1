@@ -26,6 +26,7 @@ Function Get-SQLWebAdvisorID{
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $ShowQuery
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $Both
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [int] $SqlTimeOut=60
+    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $NoPosition
     ,[Parameter(ParameterSetName='Query'    ,Mandatory=$false)] [string] $Query
     ,[Parameter(ParameterSetName='InputFile',Mandatory=$true )] [string] $InputFile
     ,[Parameter(ParameterSetName='InputFile',Mandatory=$false)] [string] $Delimiter=","
@@ -69,8 +70,35 @@ Function Get-SQLWebAdvisorID{
     Process{
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
+        
+        Switch($PSBoundParameters.ContainsKey('NoPosition')){
+            $true{
+                $strQuery = @"
+USE [ODS_HR]
 
-        $strQuery = @"
+SELECT P.ID AS [EMPLOYEEID]
+        ,P.FIRST_NAME AS [GIVENNAME]
+        ,P.MIDDLE_NAME AS [MIDDLENAME]
+        ,P.LAST_NAME AS [SURNAME]
+        ,P.SUFFIX AS [SUFFIX]
+        ,P.PREFERRED_NAME AS [PREFERREDNAME]
+        ,PP.PERSON_PIN_USER_ID AS [EXTENSIONATTRIBUTE1]
+        ,P.BIRTH_DATE
+        ,P.SSN
+FROM ODS_ST.dbo.S85_PERSON AS P  WITH (NOLOCK)
+LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
+    ON PP.PERSON_PIN_ID = P.ID
+WHERE (
+        $($EmployeeIDs | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
+        $($EmployeeIDs | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
+    )
+ORDER BY EmployeeID
+
+
+"@
+            }
+            Default{
+                $strQuery = @"
 SELECT DISTINCT  ED.FIRST_NAME AS [Givenname]
                 ,PERS.MIDDLE_NAME AS [MiddleName]
 				,ED.LAST_NAME AS [Surname]
@@ -175,6 +203,8 @@ SELECT DISTINCT  ED.FIRST_NAME AS [Givenname]
     )
     ORDER BY EmployeeID
 "@
+            }
+        }
 
 <#
         $strQuery = @"
