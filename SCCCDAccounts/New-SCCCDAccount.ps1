@@ -27,33 +27,49 @@ Ver EntryDate  Editor Description
 Function New-SCCCDAccount{
     [CmdletBinding(SupportsShouldProcess)]
     Param(
-         [Parameter(Mandatory=$true,ParameterSetName='Default')][string]$EmployeeID
-        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$HasEmail = $false
-        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$IsStudent = $false
-        ,[Parameter(Mandatory=$false,ParameterSetName='Initialize')][switch]$Initialize = $false
-        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$DebugMe = $false
-        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][string]$PreferredName
-        ,[Parameter(Mandatory=$false,ParameterSetName='Default')][switch]$NoPosition
+         [Parameter(Mandatory=$true,ParameterSetName='Default')]
+         [Parameter(Mandatory=$true,ParameterSetName='WithAttributes')]
+         [string]$EmployeeID
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')]
+         [Parameter(Mandatory=$false,ParameterSetName='WithAttributes')]
+         [switch]$HasEmail = $false
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')]
+         [Parameter(Mandatory=$false,ParameterSetName='WithAttributes')]
+         [switch]$IsStudent = $false
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Initialize')]
+         [switch]$Initialize = $false
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')]
+         [Parameter(Mandatory=$false,ParameterSetName='WithAttributes')]
+         [switch]$DebugMe = $false
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')]
+         [string]$PreferredName
+        
+        ,[Parameter(Mandatory=$false,ParameterSetName='Default')]
+         [Parameter(Mandatory=$false,ParameterSetName='WithAttributes')]
+         [switch]$NoPosition
+        
+        ,[Parameter(Mandatory=$true,ParameterSetName='WithAttributes')]
+         [string]$Department
+        
+        ,[Parameter(Mandatory=$true,ParameterSetName='WithAttributes')]
+         [string]$Campus
+        
+        ,[Parameter(Mandatory=$true,ParameterSetName='WithAttributes')]
+         [string]$EmployeeType
+
+        ,[Parameter(Mandatory=$true,ParameterSetName='WithAttributes')]
+         [string]$Title
     )
 
     Try{
-        Remove-Variable -Name secondarySMTP `
-                ,primarySMTP `
-                ,sqlResults `
-                ,accountSplat `
-                ,missingAttributes `
-                ,newAccount `
-                ,AccountSuccess `
-                ,thisOutput `
-                ,password `
-                ,primarySMTPAddress `
-                ,newMailbox `
-                ,DomainController `
-                ,date `
-                ,accountexists `
-                ,trackItInfo `
-                ,strSamAccountName `
-                ,strSite -ErrorAction SilentlyContinue
+        Remove-Variable -Name secondarySMTP,primarySMTP,sqlResults,accountSplat,missingAttributes, `
+            newAccount,AccountSuccess,thisOutput,password,primarySMTPAddress,newMailbox,DomainController, `
+            date,accountexists,trackItInfo,strSamAccountName,strSite -ErrorAction SilentlyContinue
     }
     Catch{
         Write-Verbose "Error removing variables"
@@ -85,41 +101,69 @@ Function New-SCCCDAccount{
     $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
     $date = get-date
     $password = New-RandomPassword -length 10
+    
     Switch($PSBoundParameters.ContainsKey('NoPosition')){
+        #Student or other user who has no PERSTAT or POS
         $true{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID -NoPosition
         }
+        #Has PERSTAT or POS
         Default{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID
         }
     }
+
     [bool]$accountExists = Test-ADAccountExist -EmployeeID $EmployeeID
+
     $trackItInfo = Get-TrackItInfo -EmployeeID $EmployeeID
+
+    Switch(($PSCmdlet.ParameterSetName -eq 'WithAttributes') -or ($trackItInfo -eq $null)){
+
+        $true{
+            Wait-Debugger
+            write-host "Wait here"
+
+            $trackItInfo = @{}
+            $trackItInfo.Site = $Campus
+            $trackItInfo.Department = $Department
+            $trackItInfo.EmployeeType = $EmployeeType
+            $trackItInfo.Title = $Title
+        }
+        
+        Default{
+
+        }
+
+    }
+
     $strSamAccountName = Get-NextSamAccountName -Initials $("{0}{1}" -f $sqlResults.GIVENNAME.Substring(0,1).ToLower(),$sqlResults.SURNAME.Substring(0,1).ToLower())
     #enregion
 
-    if(($null -ne $trackItInfo.Site) -or ($trackItInfo.Site -notlike "")){
+    if(![string]::IsNullOrEmpty($trackItInfo.Site)){
         $strSite = $trackItInfo.Site
     }
-    elseif(($null -ne $sqlResults.SITE) -or ($sqlResults.SITE -ne "")){
+    elseif(![string]::IsNullOrEmpty($sqlResults.SITE)){
         $strSite = $sqlResults.SITE
     }
     else{
-        #$strSite = 'DO'
-        $strSite = Read-Host -Prompt "Site?"
+        $strSite = $null
     }
 
-    if($strSite -notlike ""){
-        $site = get-SiteInfo -Site $strSite
-    }
-    else{
-        $strSite = get-SiteInfo -help
-        $site = get-SiteInfo $strSite.Site
+    if([string]::IsNullOrEmpty($strSite)){
+        $strSite = $(get-SiteInfo -help).Site
     }
 
-    if($null -like $sqlResults.EXTENSIONATTRIBUTE1){
+    $site = get-SiteInfo $strSite
+
+    if([string]::IsNullOrEmpty($sqlResults.EXTENSIONATTRIBUTE1)){
         Write-Output $("WARNING: No ExtensionAttribute1 for {2}, {0} {1}" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
-        $sqlResults.EXTENSIONATTRIBUTE1 = Read-Host $("What is the WebAdvisorID (ExtensionAttribute1) for ({0}, {1} {2})?" -f $sqlResults.EMPLOYEEID,$sqlResults.GIVENNAME,$sqlResults.SURNAME)
+        $temp_SQL_Results = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID -NoPosition
+        if([string]::IsNullOrEmpty($temp_SQL_Results.EXTENSIONATTRIBUTE1)){
+            $sqlResults.EXTENSIONATTRIBUTE1 = $temp_SQL_Results.EXTENSIONATTRIBUTE1
+        }
+        else{
+            $sqlResults.EXTENSIONATTRIBUTE1 = Read-Host $("What is the WebAdvisorID (ExtensionAttribute1) for ({0}, {1} {2})?" -f $sqlResults.EMPLOYEEID,$sqlResults.GIVENNAME,$sqlResults.SURNAME)
+        }
     }
 
     if($accountExists){
@@ -133,59 +177,10 @@ Function New-SCCCDAccount{
         $tempUser = Get-UserInfo -Anr $("{0} {1}" -f $($sqlResults.Givenname),$($sqlResults.Surname))
         #$tempUser | Get-Member
         Wait-Debugger
-        Write-Host "Teszting"
+        Write-Host "Testing"
         write-Host $($tempUser.sAMAccountName)
         #Remove-Module SCCCDAccounts;Import-Module SCCCDAccounts
         $tempUser | fl
-        <#
-Write-Host $($(@'
-{0}
-{1}
-{2}
-{3}
-{4}
-{5}
-{6}
-{7}
-{8}
-{9}
-{10}
-{11}
-{12}
-{13}
-{14}
-{15}
-{16}
-{17}
-{18}
-{19}
-{20}
-{21}
-...
-'@) -f $($tempUser.sAMAccountName) `
-        ,$($tempUser.UserPrincipalName) `
-        ,$($tempUser.Name) `
-        ,$($tempUser.DisplayName) `
-        ,$($tempUser.Givenname) `
-        ,$($tempUser.Surname) `
-        ,$($tempUser.EmployeeID) `
-        ,$($tempUser.ExtensionAttribute1) `
-        ,$($tempUser.Description) `
-        ,$($tempUser.CanonicalName) `
-        ,$($tempUser.Title) `
-        ,$($tempUser.Department) `
-        ,$($tempUser.Company) `
-        ,$($tempUser.userAccountControl) `
-        ,$($tempUser.'UAC-Converted') `
-        ,$($tempUser.Enabled) `
-        ,$($tempUser.PasswordExpired) `
-        ,$($tempUser.whenCreated) `
-        ,$($tempUser.whenChanged) `
-        ,$($tempUser.LastLogonDate) `
-        ,$($tempUser.Mail) `
-        ,$($tempUser.MailNickname) `
-        ,$($tempUser.ProxyAddresses))
-        #>
 
         #Wait-Debugger
         #Write-Debug $($str)
@@ -194,7 +189,7 @@ Write-Host $($(@'
             Write-Output "Found existing user by name, but has EmployeeID which doesn't match"
             $accountExists = $false
         }
-        elseif([string]::IsNullOrEmpty($tempUser.EmployeeID)){
+        elseif([string]::IsNullOrEmpty($tempUser.EmployeeID) -and ([string]::IsNullOrEmpty())){
             #Write-Host "Found matching AD user by name, but has no EmployeeID"
             Write-Host "Found matching AD user by name, but has no EmployeeID"
             $accountExists = $false
@@ -242,54 +237,40 @@ Write-Host $($(@'
 
     Write-Verbose $EmployeeType
 
-    #<#
-    if(($sqlResults.DEPARTMENT -eq $trackItInfo.Department) -and ($(get-date $($sqlResults.CHANGE_DATE)) -gt $($(get-date).AddDays(-30)))){
-        #Write-Debug -Message "SQL Results are blank or NULL"
+    if(![string]::IsNullOrEmpty($trackItInfo.Department)){
         Wait-Debugger
         $department = $sqlResults.DEPARTMENT
     }
-    <#
-    elseif(($(get-date $($sqlResults.CHANGE_DATE)) -gt $($(get-date).AddDays(-30))) -and (($sqlResults.DEPARTMENT -ne ""))){
-        Write-Debug -Message "SQL Results are blank or NULL for DEPARTMENT or ChangeDate too old"
-        Wait-Debugger
-        $department = $sqlResults.DEPARTMENT
-    }#>
-    #elseif(($sqlResults.DEPARTMENT -ne "") -or (($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like ""))){
-    elseif(($null -ne $sqlResults.DEPARTMENT) -or ($sqlResults.DEPARTMENT -like "")){
+    elseif(![string]::IsNullOrEmpty($sqlResults.DEPARTMENT)){
         Write-Debug -Message "SQL Results for DEPARTMENT are blank or NULL"
         #Wait-Debugger
-        #$department = $trackItInfo.Department
-        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+        $department = $sqlResults.DEPARTMENT
     }
     else{
         Wait-Debugger
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
     
-    if($department -eq $null){
-        
-        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
-    }
-    elseif($department -like ""){
+    if([string]::IsNullOrEmpty($department)){
         $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
     }
     
     Write-Verbose $Department
      
-    #>
-    
-    #Skipping Title for now
-    <#
-    if((($sqlResults.TITLE -ne "") -and ($null -ne $sqlResults.TITLE)) -and ($(get-date $sqlResults.CHANGEDATE) -gt $($(get-date).AddDays(-5)))){
-        $title = $sqlResults.TITLE
+    if(($PSCmdlet.ParameterSetName -eq "WithAttributes") -and ![string]::IsNullOrEmpty($Title)){
+        $Title
     }
-    elseif(($trackItInfo.TITLE -ne "") -and ($null -ne $trackItInfo.TITLE)){
-        $title = $trackItInfo.TITLE
+    elseif(![string]::IsNullOrEmpty($sqlResults.TITLE)){
+        $Title = $sqlResults.TITLE
+    }
+    elseif(![string]::IsNullOrEmpty($trackItInfo.Title)){
+        $Title = $trackItInfo.Title
     }
     else{
-        $title = Read-Host -Prompt $("What is the TITLE for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+        $title = $null
+        #$title = Read-Host -Prompt $("What is the TITLE for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+
     }
-    #>
 
     $accountSplat = @{
         AccountPassword       = $password.secure
@@ -301,18 +282,15 @@ Write-Host $($(@'
         ChangePasswordAtLogon = $true
     }
 
-    if($department -notlike ""){
+    if(![string]::IsNullOrEmpty($department)){
         $accountSplat.Add('Department',$department)
     }
 
-    #Skipping Title
-    <#
-    if($title -notlike ""){
+    if(![string]::IsNullOrEmpty($title)){
         $accountSplat.Add('Title',$title)
     }
-    #>
 
-    if($sqlResults.EXTENSIONATTRIBUTE1 -ne ""){
+    if(![string]::IsNullOrEmpty($sqlResults.EXTENSIONATTRIBUTE1)){
         $accountSplat.Add('OtherAttributes',@{ExtensionAttribute1=$sqlResults.EXTENSIONATTRIBUTE1})
     }
 
@@ -397,6 +375,7 @@ UserPrincipalName: {4}
 IsStudent:         {5}
 Database:          {6}
 "@) -f $accountSplat.sAMAccountName,$accountSplat.Givenname,$accountSplat.Surname,$accountSplat.EmployeeID,$accountSplat.UserPrincipalName,$($PSBoundParameters.ContainsKey('IsStudent')),$mailboxSplat.Database)
+
                 if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")) {
                     New-ADUser @accountSplat -Server $DomainController -PassThru | Tee-Object $strTeeFilename
                     $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") | Out-String | Out-File -Append $strTeeFilename
@@ -420,14 +399,14 @@ Database:          {6}
             Catch{
                 [bool]$AccountSuccess = $false
             }
-            if(($counter -gt 0) -and ($null -eq $newAccount.UserPrincipalName)){
+            if(($counter -gt 0) -and ([string]::IsNullOrEmpty($newAccount.UserPrincipalName))){
                 Write-Output $("{0} Seconds. Waiting to try again." -f $($counter * 30))
                 Start-Sleep -Seconds 30
             }
             $counter++
 
         }
-        Until(("" -notlike $newAccount.UserPrincipalName) -or ($counter -gt 5))
+        Until((![string]::IsNullOrEmpty($newAccount.UserPrincipalName)) -or ($counter -gt 5))
 
         if(Get-Variable -Name thisOutput -ErrorAction SilentlyContinue){Remove-Variable -Force thisOutput -ErrorAction SilentlyContinue}
 #region :: Output
@@ -526,7 +505,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     [bool]$MailboxSuccess = $false
                 }
 
-                if($secondarySMTP -notlike ""){
+                if(![string]::IsNullOrEmpty($secondarySMTP)){
                     if((Test-EmailAddressAvailable -EmailAddress $secondarySMTP)){
                         $c = 0
                         $m = $null
@@ -537,7 +516,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                             }
                             $c++
                         }
-                        Until($m.PrimarySMTPAddress -ne "" -or $c -gt 5)
+                        Until((![string]::IsNullOrEmpty($m.PrimarySMTPAddress)) -or ($c -gt 5))
                         
                         if(Test-EmailAddressAvailable -EmailAddress $secondarySMTP){
                             Try{
@@ -576,18 +555,18 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                 Catch{
                     Write-Verbose "Error $_"
                 }
-                if(($counter -gt 0) -and ($newMailbox.PrimarySMTPAddress -like "")){
+                if(($counter -gt 0) -and ([string]::IsNullOrEmpty($newMailbox.PrimarySMTPAddress))){
                     Write-Output @("{0} Seconds. Waiting to try again." -f $($counter * 30))
                     Start-Sleep -Seconds 30
                 }
                 $counter++
             }
-            Until(($newMailbox.PrimarySMTPAddress -notlike "") -or ($counter -gt 5))
+            Until((![string]::IsNullOrEmpty($newMailbox.PrimarySMTPAddress)) -or ($counter -gt 5))
             #Mail................ : $($newAccount.Mail)
             $thisOutput += @"
 PrimaryMail......... : $($newMailbox.PrimarySmtpAddress)
 SecondaryMail....... : $(if($newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).count -gt 0 ){$newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).replace('smtp:','')}else{$null})
-SimpleDisplayName... : $(if($newMailbox.SimpleDisplayName -ne $Null){$newMailbox.SimpleDisplayName}else{$null})
+SimpleDisplayName... : $(if(![string]::IsNullOrEmpty($newMailbox.SimpleDisplayName)){$newMailbox.SimpleDisplayName}else{$null})
 "@
         }
         Default{

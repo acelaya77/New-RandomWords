@@ -34,11 +34,12 @@ Function Get-TrackItInfo{
     
     if($indexNumber -ne -1){
         $thisItem = $thisImported[$indexNumber]
+        Return $thisItem
     }
     else{
         $thisItem = $Null
+        Return $null
     }
     
-    Return $thisItem
 }
 
