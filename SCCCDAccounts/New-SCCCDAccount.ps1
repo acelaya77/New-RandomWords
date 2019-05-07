@@ -113,11 +113,17 @@ Function New-SCCCDAccount{
         }
     }
 
-    [bool]$accountExists = Test-ADAccountExist -EmployeeID $EmployeeID
+    if(![string]::IsNullOrEmpty($sqlResults.sAMAccountName)){
+        [bool]$accountExists = $true
+        break
+    }
+    else{
+        [bool]$accountExists = Test-ADAccountExist -EmployeeID $EmployeeID
+    }
 
     $trackItInfo = Get-TrackItInfo -EmployeeID $EmployeeID
 
-    Switch(($PSCmdlet.ParameterSetName -eq 'WithAttributes') -or ($trackItInfo -eq $null)){
+    Switch(($PSCmdlet.ParameterSetName -eq 'WithAttributes') -or (![string]::IsNullOrEmpty($trackItInfo))){
 
         $true{
             Wait-Debugger
@@ -169,7 +175,7 @@ Function New-SCCCDAccount{
     if($accountExists){
         #Write-Debug $("{0} {1}" -f $sqlResults.Givenname,$sqlResults.Surname)
         try{
-            rv -Name g -Force -ErrorAction SilentlyContinue
+            Remove-Variable -Name g -Force -ErrorAction SilentlyContinue
         }
         catch{
         }
@@ -180,7 +186,7 @@ Function New-SCCCDAccount{
         Write-Host "Testing"
         write-Host $($tempUser.sAMAccountName)
         #Remove-Module SCCCDAccounts;Import-Module SCCCDAccounts
-        $tempUser | fl
+        $tempUser | Format-List
 
         #Wait-Debugger
         #Write-Debug $($str)
@@ -386,7 +392,7 @@ Database:          {6}
                 Write-Debug "Missing values"
                 $missingAttributes
                 break
-                $halt = $true
+                #$halt = $true
             }
         }
 
@@ -488,7 +494,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                         $tmpMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
                     }
                     While([string]::IsNullOrEmpty($tmpMailbox.Alias))
-                    rv -Name tmpCounter -ErrorAction SilentlyContinue
+                    Remove-Variable -Name tmpCounter -ErrorAction SilentlyContinue
 
                     Try{
                         Write-Host "$($tmpMailbox.Alias)"
