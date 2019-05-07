@@ -193,7 +193,7 @@ ORDER BY P.ID
         #np++ $tmpFile
 
         #Remove-Item $tmpFile -Confirm:$false -Force
-        if($Global:ADHash.ContainsKey($objResults.EmployeeID)){
+        if($Global:ADHash.ContainsKey($EmployeeID)){
             $objResults | Add-Member -MemberType NoteProperty -Name 'sAMAccountName' -Value $($Global:ADHash[$objResults.EmployeeID])
         }
         $objResults
