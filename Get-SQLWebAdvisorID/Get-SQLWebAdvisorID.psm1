@@ -190,7 +190,7 @@ ORDER BY P.ID
             Export-Csv -NoTypeInformation -Delimiter "," $tmpFile
         $objResults = Import-Csv $tmpFile
 
-        np++ $tmpFile
+        #np++ $tmpFile
 
         #Remove-Item $tmpFile -Confirm:$false -Force
         if($Global:ADHash.ContainsKey($EmployeeID)){
