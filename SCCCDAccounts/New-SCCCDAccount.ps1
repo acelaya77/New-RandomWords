@@ -105,11 +105,11 @@ Function New-SCCCDAccount{
     Switch($PSBoundParameters.ContainsKey('NoPosition')){
         #Student or other user who has no PERSTAT or POS
         $true{
-            $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID -NoPosition
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
         }
         #Has PERSTAT or POS
         Default{
-            $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
         }
     }
 
@@ -163,7 +163,7 @@ Function New-SCCCDAccount{
 
     if([string]::IsNullOrEmpty($sqlResults.EXTENSIONATTRIBUTE1)){
         Write-Output $("WARNING: No ExtensionAttribute1 for {2}, {0} {1}" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
-        $temp_SQL_Results = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID -NoPosition
+        $temp_SQL_Results = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
         if([string]::IsNullOrEmpty($temp_SQL_Results.EXTENSIONATTRIBUTE1)){
             $sqlResults.EXTENSIONATTRIBUTE1 = $temp_SQL_Results.EXTENSIONATTRIBUTE1
         }
