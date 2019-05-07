@@ -20,7 +20,7 @@ HISTORY.......:
 Function Get-SQLWebAdvisorID{
     [CmdletBinding()]
     Param(
-     [Parameter(ParameterSetName='Default'  ,Mandatory=$true )] [string[]] $EmployeeIDs
+     [Parameter(ParameterSetName='Default'  ,Mandatory=$true )] [string[]] $EmployeeID
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $UpdateFiles
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $OutputQuery
     ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $ShowQuery
@@ -39,9 +39,9 @@ Function Get-SQLWebAdvisorID{
 
             {($PSBoundParameters.ContainsKey('InputFile')) -and $InputFile}{
                 $InputFile = Get-Item (Resolve-Path $InputFile)
-                $EmployeeIDs = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
-                Write-Verbose $EmployeeIDs
-                $strEmployeeIDs = [string]::Join(',',$($EmployeeIDs | ForEach-Object{"`'$_`'"}))
+                $EmployeeID = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
+                Write-Verbose $EmployeeID
+                $strEmployeeIDs = [string]::Join(',',$($EmployeeID | ForEach-Object{"`'$_`'"}))
             }#end case
             {($PSBoundParameters.ContainsKey('InputFile')) -and (-not($InputFile))}{
                 Do{
@@ -50,8 +50,8 @@ Function Get-SQLWebAdvisorID{
                 }Until(Test-Path $InputFile.FUllName)
             }#end case
             {-not($PSBoundParameters.ContainsKey('InputFile'))}{
-                $EmployeeIDs = $($EmployeeIDs.Replace("'","") -split ",")
-                $strEmployeeIDs = [string]::join(',',$($EmployeeIDs | Foreach-Object{"`'$_`'"}))
+                $EmployeeID = $($EmployeeID.Replace("'","") -split ",")
+                $strEmployeeIDs = [string]::join(',',$($EmployeeID | Foreach-Object{"`'$_`'"}))
                 $strEmployeeIDs = $strEmployeeIDs.replace("''","'")
             }#end case
         }#end switch
@@ -90,8 +90,8 @@ FROM ODS_ST.dbo.S85_PERSON AS P  WITH (NOLOCK)
 LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
     ON PP.PERSON_PIN_ID = P.ID
 WHERE (
-        $($EmployeeIDs | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
-        $($EmployeeIDs | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
+        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
+        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
     )
 ORDER BY P.ID
 
@@ -99,10 +99,10 @@ ORDER BY P.ID
 "@
             }
             Default{
-                $strQuery = $("{0}`r`n{1}" -f $(gc -Raw $fileSQLQuery),$(@"
+                $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
     AND (
-        $($EmployeeIDs | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
-        $($EmployeeIDs | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
+        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
+        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
         )
 "@))
             }
