@@ -142,6 +142,11 @@ ORDER BY P.ID
             }
 
         }
+        else{
+            $objResults = "No Results"
+            $objResults
+            break
+        }
 
         $StaffConnection.Close()
 
