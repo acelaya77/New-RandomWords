@@ -108,9 +108,13 @@ Function New-SCCCDAccount{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
         }
         #Has PERSTAT or POS
-        Default{
+        $true{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
         }
+    }
+
+    if($sqlResults -eq "No Results"){
+        $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
     }
 
     if(![string]::IsNullOrEmpty($sqlResults.sAMAccountName)){
