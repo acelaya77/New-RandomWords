@@ -113,7 +113,7 @@ Function New-SCCCDAccount{
         }
     }
 
-    if($sqlResults -eq "No Results"){
+    if(([string]::IsNullOrEmpty($sqlResults)) -or ($sqlResults -eq "No Results")){
         $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
     }
 
