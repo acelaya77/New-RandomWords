@@ -243,22 +243,18 @@ Function New-SCCCDAccount{
 
     Write-Verbose $EmployeeType
 
-    if(![string]::IsNullOrEmpty($trackItInfo.Department)){
+    if([string]::IsNullOrEmpty($trackItInfo.Department)){
         Wait-Debugger
-        $department = $sqlResults.DEPARTMENT
-    }
-    elseif(![string]::IsNullOrEmpty($sqlResults.DEPARTMENT)){
-        Write-Debug -Message "SQL Results for DEPARTMENT are blank or NULL"
-        #Wait-Debugger
-        $department = $sqlResults.DEPARTMENT
-    }
-    else{
-        Wait-Debugger
-        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
-    }
-    
-    if([string]::IsNullOrEmpty($department)){
-        $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+        #$department = $sqlResults.DEPARTMENT
+        if(![string]::IsNullOrEmpty($sqlResults.DEPARTMENT)){
+            Write-Debug -Message "SQL Results for DEPARTMENT are blank or NULL"
+            #Wait-Debugger
+            $department = $sqlResults.DEPARTMENT
+        }
+        else{
+            Wait-Debugger
+            $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
+        }    
     }
     
     Write-Verbose $Department

@@ -28,7 +28,7 @@ Function Test-ADAccountExist{
     Param(
         [Parameter(Mandatory=$true)][String]$EmployeeID
     )
-    $sqlResults = Get-SQLWebAdvisorID -EmployeeIDs $EmployeeID
+    $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
 
     <#
     if($Global:ADHash.ContainsKey($EmployeeID)){
