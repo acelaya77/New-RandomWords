@@ -104,12 +104,12 @@ Function New-SCCCDAccount{
     
     Switch($PSBoundParameters.ContainsKey('NoPosition')){
         #Student or other user who has no PERSTAT or POS
-        $true{
-            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
+        $false{
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
         }
         #Has PERSTAT or POS
         Default{
-            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
+            $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
         }
     }
 
