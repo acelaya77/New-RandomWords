@@ -147,6 +147,9 @@ ORDER BY P.ID
             $objResults
             break
         }
+        if($objResults -eq "No results"){
+            break
+        }
 
         $StaffConnection.Close()
 
