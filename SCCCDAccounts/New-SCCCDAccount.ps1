@@ -104,18 +104,26 @@ Function New-SCCCDAccount{
     
     Switch($PSBoundParameters.ContainsKey('NoPosition')){
         #Student or other user who has no PERSTAT or POS
-        $false{
+        Default{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
+            if([string]::IsNullOrEmpty($sqlResults)){
+                Wait-Debugger
+                Write-Debug "No SQL Results"
+                $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
+            }
         }
         #Has PERSTAT or POS
         $true{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
+            if([string]::IsNullOrEmpty($sqlResults)){
+                Wait-Debugger
+                Write-Debug "No SQL Results"
+                break
+            }
         }
     }
 
-    if(([string]::IsNullOrEmpty($sqlResults)) -or ($sqlResults -eq "No Results")){
-        $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
-    }
+
 
     if(![string]::IsNullOrEmpty($sqlResults.sAMAccountName)){
         [bool]$accountExists = $true
@@ -127,7 +135,7 @@ Function New-SCCCDAccount{
 
     $trackItInfo = Get-TrackItInfo -EmployeeID $EmployeeID
 
-    Switch(($PSCmdlet.ParameterSetName -eq 'WithAttributes') -or (![string]::IsNullOrEmpty($trackItInfo))){
+    Switch(($PSCmdlet.ParameterSetName -eq 'WithAttributes') -or ([string]::IsNullOrEmpty($trackItInfo))){
 
         $true{
             Wait-Debugger
@@ -141,7 +149,8 @@ Function New-SCCCDAccount{
         }
         
         Default{
-
+            Wait-Debugger
+            write-host "Wait here"
         }
 
     }
@@ -259,6 +268,8 @@ Function New-SCCCDAccount{
             Wait-Debugger
             $department = Read-Host -Prompt $("What is the DEPARTMENT for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID)
         }    
+    }else{
+        $Department = $trackItInfo.Department
     }
     
     Write-Verbose $Department
@@ -503,6 +514,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     Catch{
                         Write-Output "Couldn't set OWA Policy"
                         Throw $_
+                        Write-Output "Get-Mailbox $($tmpMailbox.Alias) -DomainController $($DomainController) | set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $($DomainController)"
                     }
 
                     [bool]$MailboxSuccess = $true

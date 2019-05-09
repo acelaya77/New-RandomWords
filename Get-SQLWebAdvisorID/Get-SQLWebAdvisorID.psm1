@@ -57,18 +57,20 @@ Function Get-SQLWebAdvisorID{
         }#end switch
 
         #$csvOutput = gci (join-path '\\sdofs1-08e\is$\Continuity\Celaya\AD\' 'WebAdvisorID.csv')
-        $csvOutput = (join-path $env:USERPROFILE\Desktop 'WebAdvisorID.csv')
-        [string]$Server = "sdodw1"
-        [string]$StaffDatabase = "ODS_HR"
-        $StaffConnection = New-Object System.Data.SqlClient.SqlConnection
-        $StaffConnection.ConnectionString = "server='$server';database='$StaffDatabase';trusted_connection=true;"
-        $StaffConnection.Open()
         Write-Verbose "`$strEmployeeIDs:"
         Write-Verbose $strEmployeeIDs
 
     }#end Begin{}
 
     Process{
+
+        $csvOutput = (join-path $env:USERPROFILE\Desktop 'WebAdvisorID.csv')
+        [string]$Server = "sdodw1"
+        [string]$StaffDatabase = "ODS_HR"
+        $StaffConnection = New-Object System.Data.SqlClient.SqlConnection
+        $StaffConnection.ConnectionString = "server='$server';database='$StaffDatabase';trusted_connection=true;"
+        $StaffConnection.Open()
+
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
         
@@ -111,23 +113,21 @@ ORDER BY P.ID
 
 #endregion
 
-        $StaffCommand = $StaffConnection.CreateCommand()
-
         write-verbose "IDs:"
         Write-Verbose $strEmployeeIDs
 
-        #region :: THIS
+        #region :: Show Query
         if($PSBoundParameters.ContainsKey('showQuery')){
             Write-Host -ForegroundColor DarkGreen -BackgroundColor Gray "Showing query"
             Write-Host "`r`n"
             Write-Host -ForegroundColor DarkRed -BackgroundColor White $strQuery
             Write-Host "`r`n"
         }
-        #endregion :: THIS
+        #endregion :: Show Query
 
+        $StaffCommand = $StaffConnection.CreateCommand()
         $StaffCommand.CommandText = $strQuery
         $StaffCommand.CommandTimeout = $SqlTimeOut
-
         $StaffResults = $StaffCommand.ExecuteReader()
 
         if($StaffResults.HasRows){
@@ -143,15 +143,56 @@ ORDER BY P.ID
 
         }
         else{
-            $objResults = "No Results"
-            $objResults
-            break
+            <#
+            [bool]$noResults = $true
+            $strQuery = @"
+USE [ODS_HR]
+
+SELECT   P.ID AS [EMPLOYEEID]
+        ,P.FIRST_NAME AS [GIVENNAME]
+        ,P.MIDDLE_NAME AS [MIDDLENAME]
+        ,P.LAST_NAME AS [SURNAME]
+        ,P.SUFFIX AS [SUFFIX]
+        ,P.PREFERRED_NAME AS [PREFERREDNAME]
+        ,PP.PERSON_PIN_USER_ID AS [EXTENSIONATTRIBUTE1]
+        ,P.BIRTH_DATE
+        ,P.SSN
+FROM ODS_ST.dbo.S85_PERSON AS P  WITH (NOLOCK)
+LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
+    ON PP.PERSON_PIN_ID = P.ID
+WHERE (
+        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
+        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
+    )
+ORDER BY P.ID
+
+
+"@
+            $StaffCommand = $StaffConnection.CreateCommand()
+            $StaffCommand.CommandText = $strQuery
+            $StaffCommand.CommandTimeout = $SqlTimeOut
+            $StaffConnection.Open()
+            $StaffResults = $StaffCommand.ExecuteReader()
+            $StaffConnection.Close()
+
+            $tblStaffResults = New-Object System.Data.DataTable
+            try{
+                $tblStaffResults.Load($StaffResults)
+            }
+            catch{
+                $ErrorMessage = $($_.Exception.Message)  #$_.Exception.Message
+
+                Write-Verbose $ErrorMessage
+            }
+        #>
         }
-        if($objResults -eq "No results"){
-            break
+        
+        $StaffConnection.Close()
+        
+        if([string]::IsNullOrEmpty($objResults)){
+            [bool]$noResults = $true
         }
 
-        $StaffConnection.Close()
 
         $tblSortedResults = @()
         if($tblStaffResults.Rows.Count -gt 0){
