@@ -111,7 +111,8 @@ Function Get-UserInfo{
 					         'EmployeeId',
 					         'UserAccountControl',
 					         'Enabled',
-					         'wWWHomePage'
+							 'wWWHomePage'
+					Server = $DomainController
             }
             #$props
 
@@ -195,6 +196,7 @@ Function Get-UserInfo{
 			$UserList = $UserList | Select-Object -Unique | Select-Object @splat
 			#$UserList | Get-Member
 
+			<#
             $Object = [PSCustomObject]@{
                 sAMAccountName = $UserList.SamAccountName
 				UserPrincipalName = $userList.UserPrincipalName
@@ -240,7 +242,9 @@ Function Get-UserInfo{
 				Mail = $userList.Mail
 				MailNickname = $userList.MailNickname
                 ProxyAddresses = $($userList.ProxyAddresses)
-            }
+			}
+			#>
+			
             <#
             Remove-Module Get-UserInfo;Import-Module Get-UserInfo
             #>
@@ -451,12 +455,12 @@ Function Show-User{
 				}#end $false{}
 
 				$true{
-					$tmpMail = $($user.Mail)
-					if($user.mail -ne $null){
+					#$tmpMail = $($user.Mail)
+					if(![string]::IsNullOrEmpty($user.mail)){
 						if($user.proxyAddresses.count -gt 3){
 							#region :: ProxyAddresses
 							$proxyAddresses = @()
-							$tmpMail = "$($user.Mail)"
+							#$tmpMail = "$($user.Mail)"
 							# 2018-06-22
 							#$user.ProxyAddresses | ForEach-Object{$proxyAddresses += $_ | Where-Object{($_ -match "smtp:*") -and ($_ -notmatch $user.Mail) -and ($_ -notmatch $user.UserPrincipalName)} | Out-Null}
 							#endregion
