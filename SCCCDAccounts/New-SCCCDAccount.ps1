@@ -149,7 +149,7 @@ Function New-SCCCDAccount{
         }
         
         Default{
-            Wait-Debugger
+            #Wait-Debugger
             write-host "Wait here"
         }
 
@@ -503,19 +503,31 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                         if($tmpCounter -gt 3){Wait-Debugger}
                         $tmpMailbox = $Null
                         $tmpMailbox = Get-Mailbox $mailboxSplat.Alias -DomainController $DomainController
+#region 
+                        if(![string]::IsNullOrEmpty($tmpMailbox.Alias)){
+                            Try{
+                                #Wait-Debugger
+                                Write-Host "$($tmpMailbox.Alias)"
+                                Write-Host $(@'
+Get-Mailbox {0} -DomainController {1} | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController {1} -ErrorAction Stop
+'@ -f $tmpMailbox.Alias,$DomainController)
+                                
+                                Start-Sleep -Seconds 5
+                                Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $DomainController -ErrorAction Stop
+                            }
+                            Catch{
+                                Write-Output "Couldn't set OWA Policy"
+                                Throw $_
+                                Write-Output "Get-Mailbox $($tmpMailbox.Alias) -DomainController $($DomainController) | set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $($DomainController)"
+                            }
+                        }
+
+#endregion
+
                     }
                     While([string]::IsNullOrEmpty($tmpMailbox.Alias))
                     Remove-Variable -Name tmpCounter -ErrorAction SilentlyContinue
 
-                    Try{
-                        Write-Host "$($tmpMailbox.Alias)"
-                        Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $DomainController -ErrorAction Stop
-                    }
-                    Catch{
-                        Write-Output "Couldn't set OWA Policy"
-                        Throw $_
-                        Write-Output "Get-Mailbox $($tmpMailbox.Alias) -DomainController $($DomainController) | set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $($DomainController)"
-                    }
 
                     [bool]$MailboxSuccess = $true
                 }
