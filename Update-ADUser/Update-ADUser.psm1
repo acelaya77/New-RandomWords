@@ -85,11 +85,11 @@ Param(
 
 	Begin{
 		$thisSite = get-SiteInfo -Site $Site
-		$country = [PSCustomObject]@{
+		<# $country = [PSCustomObject]@{
 			c = "US"
 			co = "UNITED STATES"
 			countryCode = "840"
-		}#[PSCustomObject]
+		}#[PSCustomObject] #>
         #$DomainController = $(Get-DomainController)[0].Name
         $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
         $DomainController
@@ -269,8 +269,8 @@ $($thisSite.ou)
         #Add-SCCCDAccountLogEntry -user sg002 -update
         Switch($ResetPassword){
             $true{
-                $file = gci I:\Continuity\Celaya\AD\New_Accounts\* -Include "*_$($objUser.samaccountName)_$($objuser.employeeid)_update.*"
-                $contents = gc $file
+                $file = Get-ChildItem I:\Continuity\Celaya\AD\New_Accounts\* -Include "*_$($objUser.samaccountName)_$($objuser.employeeid)_update.*"
+                $contents = Get-Content $file
                 $contents[2] = $contents[2]+"`r`nPasswordReset........: $($pass.text)"
                 $contents
                 $contents | Out-File $file
