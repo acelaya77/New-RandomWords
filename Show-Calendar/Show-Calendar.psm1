@@ -91,8 +91,12 @@ while($start -le $end)
         }
 
         ## Pad the day number for display, highlighting if necessary.
-        $displayDay = " {0,2} " -f $currentDay.Day
-
+        $displayDay = " {0,2:00} " -f $currentDay.Day
+        <#
+        if(($currentDay -ge $start.AddMonths(1)) -or ($currentDay -lt $start)){
+            $displayDay = " {0,2:00} " -f $('  ')
+        }
+        #>
         ## Determine whether to highlight a specific date.
         if($highlightDate)
         {
@@ -100,14 +104,14 @@ while($start -le $end)
                 $currentDay.Month,$currentDay.Day
             if($highlightDate -contains $compareDate)
             {
-                $displayDay = "*" + ("{0,2}" -f $currentDay.Day) + "*"
+                $displayDay = "*" + ("{0,2:00}" -f $currentDay.Day) + "*"
             }
         }
 
         ## Otherwise, highlight as part of a date range.
         if($highlightDay -and ($highlightDay[0] -eq $currentDay.Day))
         {
-            $displayDay = "[" + ("{0,2}" -f $currentDay.Day) + "]"
+            $displayDay = "[" + ("{0,2:00}" -f $currentDay.Day) + "]"
             $null,$highlightDay = $highlightDay
         }
 

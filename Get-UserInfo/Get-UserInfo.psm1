@@ -7,7 +7,7 @@ DESCRIPTION : Get AD user info and output to screen for research and account dis
 MODULES     : 
 GLOBAL VARS : 
 LAST RAN    : 
-UPDATED     : 02-19-2019
+UPDATED     : 05-30-2019
 VERSION     : 1.4
 
 
@@ -112,7 +112,7 @@ Function Get-UserInfo{
                              'UserAccountControl',
                              'Enabled',
                              'wWWHomePage'
-                    Server = $DomainController
+                    #Server = $DomainController
             }
             #$props
 
@@ -127,6 +127,7 @@ Function Get-UserInfo{
                             $userList += $(Get-AdUser -Filter "Anr -eq '$Anr'" @props)
                         }#end if{}
                         Else{
+                            $props.Add('Server',$DomainController)
                             $userList += $(Get-AdUser -Filter "Anr -eq '$Anr'" @props)
                         }#end Else{}                        
                     }
@@ -137,6 +138,7 @@ Function Get-UserInfo{
                             $userList += $(Get-AdUser -Filter "sAMAccountName -eq '$sAMAccountName'" @props)
                         }#end if{}
                         Else{
+                            $props.Add('Server',$DomainController)
                             $userList += $(Get-AdUser -Filter "sAMAccountName -eq '$sAMAccountName'" @props)
                         }#end Else{}                        
                     }

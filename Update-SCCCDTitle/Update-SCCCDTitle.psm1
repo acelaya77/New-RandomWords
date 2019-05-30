@@ -1,4 +1,6 @@
-﻿Function Update-SCCCDTitle{
+﻿#2019-05-30
+
+Function Update-SCCCDTitle{
  [CmdletBinding()]
 
 Param(
@@ -30,7 +32,7 @@ Process{
         $csvInput = Import-Csv -Delimiter "," "I:\Continuity\Celaya\AD\New-AD-Account-Template-v2.csv"
 
         if($csvInput.EMPLOYEEID -eq $EmployeeID){
-            $site = get-SiteInfo $csvInput.SITE
+            #$site = get-SiteInfo $csvInput.SITE
             $user | Set-ADUser -Title $csvInput.TITLE -Department $csvInput.DEPARTMENT 
         }
     }

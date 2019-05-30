@@ -1,8 +1,7 @@
 ﻿<#
-2018-10-03 12:40:00
-Log New Accounts
-
+05/29/2019 16:33:05
 #>
+
 #region :: Header
 <#
 
@@ -78,11 +77,27 @@ Begin{
 
 	$strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
     $strFilePath2 = (Join-Path "C:\Users\ac007\TrackIT-Export" "Logs")
+
 	Switch($user.EmployeeID){
         {[string]::IsNullOrEmpty($_)}{
-            $strFileName = "{0}_{1}_none_{2}_{3}{4}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$(if([string]::IsNullOrEmpty($user.GivenName)){"none"}else{$user.GivenName.ToLower()}),$(if([string]::IsNullOrEmpty($user.Surname)){"none"}else{$user.Surname.ToLower()}),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+            $strFileName = "{0}_{1}_none_{2}_{3}{4}.log" -f `
+                $(get-date $date -f 'yyyyMMdd-HHmmss') `
+                ,$($user.samAccountName) `
+                ,$(if([string]::IsNullOrEmpty($user.GivenName)){"none"}else{$user.GivenName.ToLower()}) `
+                ,$(if([string]::IsNullOrEmpty($user.Surname)){"none"}else{$user.Surname.ToLower()}) `
+                ,$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+            #$strFileName = "{0}_{1}_none_{2}_{3}{4}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$(if([string]::IsNullOrEmpty($user.GivenName)){"none"}else{$user.GivenName.ToLower()}),$(if([string]::IsNullOrEmpty($user.Surname)){"none"}else{$user.Surname.ToLower()}),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
         }
-        Default{$strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower(),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})}
+        Default{
+            $strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f `
+                $(get-date $date -f 'yyyyMMdd-HHmmss') `
+                ,$($user.samAccountName) `
+                ,$($user.EmployeeID) `
+                ,$user.GivenName.ToLower() `
+                ,$user.Surname.ToLower() `
+                ,$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+            #$strFileName = "{0}_{1}_{2}_{3}_{4}{5}.log" -f $(get-date $($user.whenCreated -as [datetime]) -Format "yyyyMMdd-HHmmss"),$($user.samAccountName),$($user.EmployeeID),$user.GivenName.ToLower(),$user.Surname.ToLower(),$(if($PSBoundParameters.ContainsKey('update')){"_update"}else{$null})
+        }
     }
 
     $file = (Join-Path $strFilePath $strFileName)
@@ -101,7 +116,7 @@ Begin{
 		for($i=1;$i -lt $($proxyAddresses.count + 1);$i++){
 			$strProxy += "ProxyAddress$($i)........: $($proxyAddresses[$i - 1])"
 		} }
-	elseif(($proxyAddresses -eq 0) -or ($proxyAddresses -eq $null)){
+	elseif(($proxyAddresses -eq 0) -or ([string]::IsNullOrEmpty($proxyAddresses))){
 		$strProxy = "ProxyAddress.........: $null" }
 	else{
 		$strProxy = "ProxyAddress.........: $proxyAddresses" }
@@ -110,7 +125,7 @@ Begin{
 Process{
 
     if($PSBoundParameters.ContainsKey('extendedMailInfo')){
-        $extended = Get-MailBoxInfo $user.sAMAccountName
+        $extended = Get-MailBoxInfo $user.sAMAccountName 
 
         $extended.psobject.properties.where({ $_.Name -like "SendAs*"}) | ForEach-Object {
             $strAppend += @"
@@ -157,7 +172,7 @@ StreetAddress........: $($user.StreetAddress)
 City.................: $($user.City)
 State................: $($user.State)
 PostalCode...........: $($user.PostalCode)
-wWWHomePage..........: $(if($user.wWWHomePage -ne $null){$($($user.wWWHomePage).replace(' ',''))}else{$null})
+wWWHomePage..........: $(if(![string]::IsNullOrEmpty($user.wWWHomePage)){$($($user.wWWHomePage).replace(' ',''))}else{$null})
 Path.................: $path
 $(if([string]::IsNullOrEmpty($strAppend)){
 "SendAs...............: "
