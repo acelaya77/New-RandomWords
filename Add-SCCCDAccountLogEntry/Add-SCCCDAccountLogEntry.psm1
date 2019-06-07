@@ -195,7 +195,7 @@ Finally{
     $stream.Close()
     $stream2.Close()
 }
-
+    $file
 }#end Process{}
 
 }
