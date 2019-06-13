@@ -107,7 +107,7 @@ Function New-SCCCDAccount{
         Default{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID
             if([string]::IsNullOrEmpty($sqlResults)){
-                Wait-Debugger
+                #Wait-Debugger
                 Write-Debug "No SQL Results"
                 $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
             }
@@ -116,7 +116,7 @@ Function New-SCCCDAccount{
         $true{
             $sqlResults = Get-SQLWebAdvisorID -EmployeeID $EmployeeID -NoPosition
             if([string]::IsNullOrEmpty($sqlResults)){
-                Wait-Debugger
+                #Wait-Debugger
                 Write-Debug "No SQL Results"
                 break
             }
