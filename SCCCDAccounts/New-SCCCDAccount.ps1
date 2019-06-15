@@ -96,9 +96,9 @@ Function New-SCCCDAccount{
         Default{}
     }
     #region :: Variables
-    #$DomainController = $(Get-16DomainController)[0].Name
-    #$DomainController = 'SDODC1-08e'
-    $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
+    if(!(Test-Path Variable:\DomainController)){
+        $DomainController = $(Get-ADDomainController -Discover -DomainName "scccd.net" -Service "PrimaryDC").Name
+    }
     $date = get-date
     $password = New-RandomPassword -length 10
     
