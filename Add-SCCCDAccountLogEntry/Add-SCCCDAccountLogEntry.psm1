@@ -30,37 +30,37 @@ Function Add-SCCCDAccountLogEntry{
 #Function Log-NewSCCCDAccount {
 [CmdletBinding()]
 Param(
-	[string]$user,
+    [string]$user,
     [switch]$ShowPass,
-	[switch]$update = $false,
+    [switch]$update = $false,
     [string]$pw,
     [switch]$extendedMailInfo
 )
 
 Begin{
-	[string]$txtUser = $user
+    [string]$txtUser = $user
     $date = get-date
-	if(Get-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){Remove-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
+    if(Get-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){Remove-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
 
-	Try{
+    Try{
         $user = Get-ADUser $txtUser -Properties * -ErrorAction Stop -Server $DomainController }
-	Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-		 Write-Verbose "Error: User not found exception"
-		 Write-Verbose $_
-		 break }
-	Catch{
-		Write-Verbose "Error: $_"
-		break }
+    Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+         Write-Verbose "Error: User not found exception"
+         Write-Verbose $_
+         break }
+    Catch{
+        Write-Verbose "Error: $_"
+        break }
 
-	Try{
+    Try{
         $a = Get-ADUser $user.SamAccountName -Properties Mail,ProxyAddresses -ErrorAction Stop -Server $DomainController }
-	Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-		 Write-Verbose "Error: User not found in AD"
-		 Write-Verbose $_
-		 break }
-	Catch{
-		Write-Verbose "Error: $_"
-		break }
+    Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+         Write-Verbose "Error: User not found in AD"
+         Write-Verbose $_
+         break }
+    Catch{
+        Write-Verbose "Error: $_"
+        break }
 
     if(Get-Variable -Name mail -ErrorAction SilentlyContinue){Remove-Variable -Name mail -ErrorAction SilentlyContinue}
 
@@ -73,12 +73,12 @@ Begin{
             Write-Verbose $_ }
     }
 
-	$proxyAddresses = @()
+    $proxyAddresses = @()
 
-	$strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
+    $strFilePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "New_Accounts")
     $strFilePath2 = (Join-Path "C:\Users\ac007\TrackIT-Export" "Logs")
 
-	Switch($user.EmployeeID){
+    Switch($user.EmployeeID){
         {[string]::IsNullOrEmpty($_)}{
             $strFileName = "{0}_{1}_none_{2}_{3}{4}.log" -f `
                 $(get-date $date -f 'yyyyMMdd-HHmmss') `
@@ -103,23 +103,30 @@ Begin{
     $file = (Join-Path $strFilePath $strFileName)
     $file2 = (Join-Path $strFilePath2 $strFileName)
 
-	$path = [string]::join(',',$($user.DistinguishedName.split(',')[1..$($($user.DistinguishedName.split(',')).count)]))
+    $path = [string]::join(',',$($user.DistinguishedName.split(',')[1..$($($user.DistinguishedName.split(',')).count)]))
 
     if($($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).count -ge 1){
         Write-Verbose "Enumerating filtered email addresses"
-        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).AddressString }
-	else{
-		$proxyAddresses = $null }
+        Write-Verbose "$($mail.EmailAddresses)"
+        $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).AddressString
+        if([string]::IsNullOrEmpty($proxyAddresses)){
+            $proxyAddresses = $($mail.EmailAddresses | Where-Object {($_ -cmatch 'smtp*') -and ($_ -inotlike '*.net')}).replace('smtp:','')
+        }
+    }
+    else{
+        $proxyAddresses = $null }
 
-	$strProxy = @()
-	if($proxyAddresses.count -gt 1){
-		for($i=1;$i -lt $($proxyAddresses.count + 1);$i++){
-			$strProxy += "ProxyAddress$($i)........: $($proxyAddresses[$i - 1])"
-		} }
-	elseif(($proxyAddresses -eq 0) -or ([string]::IsNullOrEmpty($proxyAddresses))){
-		$strProxy = "ProxyAddress.........: $null" }
-	else{
-		$strProxy = "ProxyAddress.........: $proxyAddresses" }
+    $strProxy = @()
+    Write-Verbose "$($proxyAddresses.count)"
+    Write-Verbose "$($proxyAddresses)"
+    if($proxyAddresses.count -gt 1){
+        for($i=1;$i -lt $($proxyAddresses.count + 1);$i++){
+            $strProxy += "ProxyAddress$($i)........: $($proxyAddresses[$i - 1])"
+        } }
+    elseif(($proxyAddresses -eq 0) -or ([string]::IsNullOrEmpty($proxyAddresses))){
+        $strProxy = "ProxyAddress.........: $null" }
+    else{
+        $strProxy = "ProxyAddress.........: $proxyAddresses" }
 }#end Begin{}
 
 Process{
@@ -135,8 +142,8 @@ $($_.Name)..............: $($_.Value)
         }
     }
 
-	write-verbose $(if($update){"$true"}else{"$false"})
-	$fileOut = @"
+    write-verbose $(if($update){"$true"}else{"$false"})
+    $fileOut = @"
 $(get-date $date -f 'MM-dd-yyyy HH:mm:ss')
 $(if($PSBoundParameters.ContainsKey('update')){"Updated"}else{"New"}) Account Information:
 
