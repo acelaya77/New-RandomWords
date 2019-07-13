@@ -37,7 +37,27 @@ Param(
     [switch]$extendedMailInfo
 )
 
-Begin{
+
+
+Process{
+
+
+    if(!(Get-PSSession).ComputerName -eq 'sdoex01.scccd.net'){
+        $Url_OnPrem = $("http://{0}.scccd.net/powershell" -f "SDOEX01")
+    
+        $splat_onprem = @{
+            ConfigurationName = 'Microsoft.Exchange'
+            ConnectionUri = $Url_OnPrem
+            Authentication = 'Kerberos'
+            AllowRedirection = $true
+            Name = "SCCCD.Exchange.OnPrem"
+        }
+    
+        $session_onPrem = New-PSSession @splat_onprem
+        Import-PSSession -Session $session_onPrem -CommandName * -FormatTypeName * -Prefix "onPrem"
+        }#end if
+
+#region :: old begin{}
     [string]$txtUser = $user
     $date = get-date
     if(Get-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue){Remove-Variable -Name user,file,stream,stream2 -ErrorAction SilentlyContinue}
@@ -66,8 +86,8 @@ Begin{
 
     if(!([string]::IsNullOrEmpty($a.Mail)) -and ($a.Mail -notmatch "my.scccd.edu")){
         Try{
-            $mail = Get-Mailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop
-            $CASmail = Get-CASMailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop }
+            $mail = Get-onPremMailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop
+            $CASmail = Get-onPremCASMailbox $user.SamAccountName -DomainController $DomainController -ErrorAction:Stop }
         Catch{
             Write-Verbose "Error:"
             Write-Verbose $_ }
@@ -127,9 +147,7 @@ Begin{
         $strProxy = "ProxyAddress.........: $null" }
     else{
         $strProxy = "ProxyAddress.........: $proxyAddresses" }
-}#end Begin{}
-
-Process{
+#endregion
 
     if($PSBoundParameters.ContainsKey('extendedMailInfo')){
         $extended = Get-MailBoxInfo $user.sAMAccountName 
@@ -208,8 +226,5 @@ Finally{
 }
 
 <#
-
-Remove-Module Add-SCCCDAccountLogEntry
-Import-Module Add-SCCCDAccountLogEntry
-
+Import-Module Add-SCCCDAccountLogEntry -Force
 #>
