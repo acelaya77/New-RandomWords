@@ -34,3 +34,5 @@ Export-ModuleMember New-SCCCDAccount
 Export-ModuleMember Test-ADAccountExist
 Export-ModuleMember Test-EmailAddressAvailable
 Export-ModuleMember Initialize-TrackItInformation
+
+<# Import-Module SCCCDAccounts -Force #>

@@ -375,7 +375,6 @@ Function New-SCCCDAccount{
     if($continue -match "y|Y|yes|Yes|true|1"){
         $strTeeFilename = (Join-Path (Join-Path ([Environment]::GetFolderPath("UserProfile")) "TrackIt-Export") $("{0}_{1}_{2}_{3}_{4}_pw.log" -f $(get-date $date -f 'yyyyMMdd-HHmmss'),$strSamAccountName,$EmployeeID,$sqlResults.GIVENNAME.Replace(' ','-').ToLower(),$sqlResults.SURNAME.Replace(' ','-').ToLower()))
         if(!($accountExists)){
-
             $missingAttributes = Test-MissingAttributes $accountSplat
             if($missingAttributes){
                 $("Missing Attributes: {0}" -f $missingAttributes)
@@ -383,7 +382,7 @@ Function New-SCCCDAccount{
             if($missingAttributes -eq 'None'){
                 #region :: Create Account; log password
 
-                Write-Debug $($(@"
+                Write-Warning $($(@"
 Login:             {0}
 Givenname:         {1}
 Surname:           {2}
@@ -395,17 +394,19 @@ Database:          {6}
 
                 if($PSCmdlet.ShouldProcess("SCCCD", "Adding $($accountSplat.sAMAccountName) to ")) {
                     New-ADUser @accountSplat -Server $DomainController -PassThru | Tee-Object $strTeeFilename
-                    $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") | Out-String | Out-File -Append $strTeeFilename
-                }
+                    $("`r`nPassword          : $($password.text)`r`nPasswordPhonetic  : $($password.Phonetic)`r`n") |
+                        Out-String |
+                        Out-File -Append $strTeeFilename
+                }#end if
                 #endregion
-            }
+            }#end if (missing no attributes)
             else{
                 Write-Debug "Missing values"
                 $missingAttributes
                 break
                 #$halt = $true
-            }
-        }
+            }#end else (missing attributes)
+        }#end if (account exists)
 
         $Counter = 0
         do{
@@ -459,7 +460,7 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
 
 "@
 #endregion
-    }
+    }#end if (Cintinue?)
     
     Remove-FromTrackItExport -User $newAccount.EmployeeID
     
@@ -472,8 +473,6 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
         $true{
             $primarySMTPAddress = $("{0}.{1}@{2}" -f $sqlResults.GIVENNAME.Replace(' ','-').ToLower(),$sqlResults.SURNAME.Replace(' ','-').ToLower(),$site.Domain)
 
-            #$emailAddressAvailable = Test-EmailAddressAvailable -EmailAddress $primarySMTPAddress
-
             $count = 0
             Do{
                 $emailAddressAvailable = Test-EmailAddressAvailable -EmailAddress $primarySMTPAddress
@@ -481,22 +480,20 @@ Path................ : $($newAccount.DistinguishedName.Split(",")[1..4] -join ",
                     $primarySMTPAddress = Read-Host -Prompt $("What is the next email address for ({2}, {0} {1})" -f $sqlResults.GIVENNAME,$sqlResults.SURNAME,$sqlResults.EMPLOYEEID,$site.Domain)
                     $count++
                     Start-Sleep -Seconds 3
-                }
-            }
+                }#end if
+            }#end do
             Until($emailAddressAvailable)
 
             $mailboxSplat.Add('PrimarySMTPAddress',$primarySMTPAddress)
             $mailboxSplat.Add('Identity',$strSamAccountName)
 
-
             if($PSCmdlet.ShouldProcess("SCCCD Exchange","Adding $mailboxSplat to")){
                 Try{
                     if($issues){pause}
-                    #Write-Output $mailboxSplat.PrimarySMTPAddress
 
                     Write-Debug $($mailboxSplat.PrimarySMTPAddress)
                     Enable-Mailbox @mailboxSplat -DomainController $DomainController | Out-Null
-                    
+
                     $tmpCounter = 0
                     do{
                         $tmpCounter++
@@ -514,26 +511,25 @@ Get-Mailbox {0} -DomainController {1} | Set-CASMailbox -OwaMailboxPolicy '2016 O
                                 
                                 Start-Sleep -Seconds 5
                                 Get-Mailbox $tmpMailbox.Alias -DomainController $DomainController | Set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $DomainController -ErrorAction Stop
-                            }
+                            }#end try
                             Catch{
                                 Write-Output "Couldn't set OWA Policy"
                                 Throw $_
                                 Write-Output "Get-Mailbox $($tmpMailbox.Alias) -DomainController $($DomainController) | set-CASMailbox -OwaMailboxPolicy '2016 OWA Policy' -DomainController $($DomainController)"
-                            }
-                        }
+                            }#end catch
+                        }#end if (tmpMailbox.Alias not null)
 
 #endregion
 
-                    }
+                    }#end do
                     While([string]::IsNullOrEmpty($tmpMailbox.Alias))
                     Remove-Variable -Name tmpCounter -ErrorAction SilentlyContinue
 
-
                     [bool]$MailboxSuccess = $true
-                }
+                }#end try
                 Catch{
                     [bool]$MailboxSuccess = $false
-                }
+                }#end catch
 
                 if(![string]::IsNullOrEmpty($secondarySMTP)){
                     if((Test-EmailAddressAvailable -EmailAddress $secondarySMTP)){
@@ -545,7 +541,7 @@ Get-Mailbox {0} -DomainController {1} | Set-CASMailbox -OwaMailboxPolicy '2016 O
                                 Start-Sleep -Seconds 30
                             }
                             $c++
-                        }
+                        }#end do
                         Until((![string]::IsNullOrEmpty($m.PrimarySMTPAddress)) -or ($c -gt 5))
                         
                         if(Test-EmailAddressAvailable -EmailAddress $secondarySMTP){
@@ -566,31 +562,32 @@ Get-Mailbox {0} -DomainController {1} | Set-CASMailbox -OwaMailboxPolicy '2016 O
                                     $m = get-mailbox $mailboxSplat.Alias -DomainController $DomainController
                                     if($c -gt 0){Start-Sleep -Seconds 15}
                                     $c++
-                                }Until($m.PrimarySMTPAddress -eq $secondarySMTP)
+                                }#end do
+                                Until($m.PrimarySMTPAddress -eq $secondarySMTP)
                                 Write-Debug -Message $("Added secondary SMTP address, {0}" -f $secondarySMTP)
-                            }
+                            }#end try
                             Catch{
                                 Write-Verbose "Error $_"
-                            }
-                        }
-                    }
-                }
-            }
+                            }#end catch
+                        }#end if (Test-EmailAddressAvailable)
+                    }#end if (Test-EmailAddressAvailable -EmailAddress $secondarySMTP)
+                }#end if(![string]::IsNullOrEmpty($secondarySMTP))
+            }#end if Should process
             if(Get-Variable -Name newMailbox -ErrorAction SilentlyContinue){Remove-Variable -Name newMailbox -Force -ErrorAction SilentlyContinue}
             $counter = 0
             do{
                 Try{
                     $newMailbox = Get-Mailbox $mailboxSplat.Alias -ErrorAction Stop -DomainController $DomainController
-                }
+                }#end try
                 Catch{
                     Write-Verbose "Error $_"
-                }
+                }#end catch
                 if(($counter -gt 0) -and ([string]::IsNullOrEmpty($newMailbox.PrimarySMTPAddress))){
                     Write-Output @("{0} Seconds. Waiting to try again." -f $($counter * 30))
                     Start-Sleep -Seconds 30
-                }
+                }#end if
                 $counter++
-            }
+            }#end do
             Until((![string]::IsNullOrEmpty($newMailbox.PrimarySMTPAddress)) -or ($counter -gt 5))
             #Mail................ : $($newAccount.Mail)
             $thisOutput += @"
@@ -598,32 +595,31 @@ PrimaryMail......... : $($newMailbox.PrimarySmtpAddress)
 SecondaryMail....... : $(if($newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).count -gt 0 ){$newMailbox.EmailAddresses.Where({$_ -clike "smtp*"}).replace('smtp:','')}else{$null})
 SimpleDisplayName... : $(if(![string]::IsNullOrEmpty($newMailbox.SimpleDisplayName)){$newMailbox.SimpleDisplayName}else{$null})
 "@
-        }
+        }#end true case
         Default{
-        }
-    }
+        }#end Default case
+    }#end Switch (HasEmail -not accountExists)
     if(!$accountExists){
         $strOutputFilename = (Join-Path (Join-Path ([Environment]::GetFolderPath("UserProfile")) "TrackIt-Export") $("{0}_{1}_{2}_{3}_{4}.log" -f $(get-date $date -f 'yyyyMMdd-HHmmss'),$strSamAccountName,$EmployeeID,$sqlResults.GIVENNAME.Replace(' ','-').ToLower(),$sqlResults.SURNAME.Replace(' ','-').ToLower()))
         $stream = [system.io.streamwriter]::new($strOutputFilename)
         Try{
             $thisOutput | Out-String | ForEach-Object{
                 $stream.WriteLine($_)
-            }
-        }
+            }#end foreach-Object
+        }#end try
         Finally{
             $stream.Close()
             Copy-Item -Path $strOutputFilename -Destination (Join-Path '\\sdofs1-08e\is$\Continuity\Celaya\AD\New_Accounts' (Split-Path $strOutputFilename -Leaf))
             if($AccountSuccess){
                 Remove-Item $strTeeFilename
-            }
+            }#end if (AccountSuccess)
             #np++ $strOutputFilename
-        }
-    }
+        }#end finally
+    }#end if (!$AccountExists)
 
     $DebugPreference = $previousDebugPreference
 }
 
 <#
-Remove-Module SCCCDAccounts
-Import-Module SCCCDAccounts
+Import-Module SCCCDAccounts -Force
 #>

@@ -28,7 +28,7 @@ Function Initialize-TrackItInformation{
     [CmdletBinding()]
     Param(
         [Switch]$Filter
-    )
+    )#end Param()
 
     $stopWatch = [System.Diagnostics.Stopwatch]::StartNew()
 
@@ -38,13 +38,11 @@ Function Initialize-TrackItInformation{
         Default{
             $(Split-Path $_)
             New-Item -Path $(Split-Path $_) -Name "TrackIT-Export" -ItemType Directory
-        }
-    }
+        }#end Default Case
+    }#end switch
 
-    $textInfo = (get-culture).TextInfo
-
-    if (Test-Path $(Join-Path $(Join-Path $env:USERPROFILE "TrackIt-Export") "export_new.txt")){
-        $file = Get-ChildItem $(Join-Path $(Join-Path $env:USERPROFILE "TrackIt-Export") "export_new.txt")
+    if (Test-Path $(Join-Path "$($env:USERPROFILE)\TrackIt-Export") "export_new.txt"){
+        $file = Get-ChildItem $(Join-Path "$($env:USERPROFILE)\TrackIt-Export") "export_new.txt"
         $newFile = Join-Path $(Split-Path $file) "TrackIT-Export.csv"
         $thisContent = [System.IO.File]::ReadAllLines((Resolve-Path $file.FullName))
         $thisContent = $thisContent[0..$($thisContent.count - 2)]
@@ -59,41 +57,34 @@ Function Initialize-TrackItInformation{
                     $tempContent = $header
                     $tempContent += $($thisContent | Where-Object{$_ -match "Open"}) | Out-String
                     $thisContent = $tempContent
-                }
-            }            
+                }#end true case
+            }#end switch
 
             $thisContent |
                  ForEach-Object{
                     $stream.WriteLine($_)
-                }
-        }finally{
+                 }#end foreach-Object
+        }#end try
+        finally{
             $stream.Close()
-        }
-    }
+        }#end finally
+    }#end if
 
-    #$content = Get-content $file.FullName
     $content = Get-content $newFile
-    #$content = $content[0..($content.Length - 2)]
 
     $content = $content | ForEach-Object{
         $($($_ -split "`t").Trim() | ForEach-Object{
             "`"$_`""
         }) -join ","
-    }
+    }#end foreach
 
     $content = $content | ConvertFrom-Csv | ConvertTo-Csv -NoTypeInformation -Delimiter ","
     
-    #$content = $content | Where-Object {$_.EmployeeID -notlike '0000000' -and $_.EmployeeID -ne "" -and $_.EmployeeID -ne $null} | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
-    #$content | ConvertFrom-Csv -Delimiter "," | ft -a
-
     $content = $content | ConvertFrom-Csv -Delimiter "," | ForEach-Object{
         $Id				= $_.Id.Trim()
         $Status			= $_.Status.Trim()
         $Summary1		= $_.Summary.Trim()
         $Summary		= $($Summary1.split("|")[0]).Trim()
-        #$Name			= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
-        #$Name			= $textInfo.ToTitleCase($($Name).ToLower())
-        #$EmployeeID		= Switch($Summary1.Split("|")[2]){{$_ -ne $null}{$_.Trim()};Default{$null}}
         $EmployeeID		= Switch($Summary1.Split("|")[1]){{$_ -ne $null}{$_.Trim()};Default{$null}}
         $Site			= Switch($Summary1.Split("|")[2]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
         $Department 	= Switch($Summary1.Split("|")[3]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
@@ -101,16 +92,14 @@ Function Initialize-TrackItInformation{
         $EmployeeType	= Switch($Summary1.Split("|")[5]) {{$_ -ne $null} {$_.Trim()}; Default {$null}}
         $Requestor		= $_.Requestor
         $AssignedTech	= $_.'Assigned Technician'
-        #$DateEntered	= $_.'Date Entered'
         Switch($EmployeeType){
             {$_ -like 'Certificated'}{$EmployeeType = 'Faculty'}
             Default{}
-        }
+        }#end Switch
         [PSCustomObject]@{
             ID				= $Id
             Status			= $Status
             Summary			= $Summary
-            #EmployeeName	= $Name
             EmployeeID		= $EmployeeID
             Site			= $Site
             Department      = $Department
@@ -118,66 +107,52 @@ Function Initialize-TrackItInformation{
             EmployeeType	= $EmployeeType
             Requestor		= $Requestor
             AssignedTech	= $AssignedTech
-            #DateEntered		= $DateEntered
-        }
-    }
-    #$content | ft -AutoSize
+        }#end PSCustomObject
+    }#end foreach-Object
 
     if($content.count -gt 0){
         Write-Verbose $content.count
 
-        #$content = $content.Where({($null -ne $_.EmployeeID) -and ($_.EmployeeID -ne '0000000')})
         $content = $content.Where({!([string]::IsNullOrEmpty($_.EmployeeID)) -and ($_.EmployeeID -ne '0000000')})
         $content = $content | Sort-Object EmployeeID -Unique
-    }
+    }#end if
 
-    #$existingAccounts = $($content | ConvertTo-Csv | ConvertFrom-Csv) |
     $existingAccounts = @()
     $ADHash = Import-Clixml (Join-Path "C:\Users\ac007" "ADHash.xml")
     $existingAccounts += $content |
-        #Where-Object{$Global:ADHash.ContainsKey($_.EmployeeID)} |
         Where-Object{$ADHash.ContainsKey($_.EmployeeID)} |
             ForEach-Object{
                 $id				= $_.Id
                 $status			= $_.Status
                 $summary		= $_.Summary
-                #$EmployeeName	= $_.EmployeeName
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
-                $Title          = $_.Title
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
-                #$DateEntered	= $_.DateEntered
                 $ExistsInAD		= $true
                 [PSCustomObject]@{
                     ID           = $ID
                     Status       = $Status
                     Summary      = $Summary
-                    #EmployeeName = $EmployeeName
                     EmployeeID   = $EmployeeID
                     Site         = $Site
                     Department   = $Department
-                    #Title        = $Title
                     EmployeeType = $EmployeeType
                     Requestor    = $Requestor
                     AssignedTech = $AssignedTech
-                    #DateEntered  = $DateEntered
                     ExistsInAD   = $ExistsInAD
-                }
-            }
+                }#end PSCustomObject
+            }#end foreach-Object
 
-    #$newAccounts = $($content | ConvertTo-Csv | ConvertFrom-Csv) |
     $newAccounts = @()
     $newAccounts += $content |
-        #Where-Object{!($Global:ADHash.ContainsKey($_.EmployeeID))} |
         Where-Object{!($ADHash.ContainsKey($_.EmployeeID))} |
             ForEach-Object{
                 $id				= $_.Id
                 $status			= $_.Status
                 $summary		= $_.Summary
-                #$EmployeeName	= $_.EmployeeName
                 $EmployeeID		= $_.EmployeeID
                 $Site			= $_.Site
                 $Department     = $_.Department
@@ -185,13 +160,11 @@ Function Initialize-TrackItInformation{
                 $EmployeeType	= $_.EmployeeType
                 $Requestor		= $_.Requestor
                 $AssignedTech	= $_.AssignedTech
-                #$DateEntered	= $_.DateEntered
                 $ExistsInAD		= $false
                 [PSCustomObject]@{
                     ID           = $ID
                     Status       = $Status
                     Summary      = $Summary
-                    #EmployeeName = $EmployeeName
                     EmployeeID   = $EmployeeID
                     Site         = $Site
                     Department   = $Department
@@ -199,23 +172,20 @@ Function Initialize-TrackItInformation{
                     EmployeeType = $EmployeeType
                     Requestor    = $Requestor
                     AssignedTech = $AssignedTech
-                    #DateEntered  = $DateEntered
                     ExistsInAD   = $ExistsInAD
-                }
-            }
-
-    #Update Accounts
+                }#end PSCustomObject
+            }#end foreach-Object
 
     #Create backup file
     $thisFile = $(Join-Path $(Split-Path $newFile) "Update-Me.csv")
     if(!(test-Path $thisFile)){
         New-Item $(Split-Path $newFile) -Name "Update-Me.csv" -ItemType File
 
-    }
+    }#end if
     if(Test-Path $thisFile){
         $thisFile = Get-ChildItem $thisFile
         Copy-Item $thisFile.FullName -Destination $(Join-Path $(Split-Path $thisFile) "$(get-date -f 'yyyyMMdd-hhmmss')-Update-Me.csv")
-    }
+    }#end if
 
     #Output results, if any
     Switch($($existingAccounts.count)){
@@ -223,25 +193,25 @@ Function Initialize-TrackItInformation{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
                 $existingAccounts | ConvertTo-Csv -NoTypeInformation | ForEach-Object{$stream.WriteLine($_)}
-            }finally{
+            }#end try
+            finally{
                 $stream.Close()
                 #np++ $thisFile.FullName
                 Write-Output $thisFile.FullName
-            }
-        }
+            }#end finally
+        }#end case
         Default{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
-                #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
                 $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
-            }finally{
+            }#end try
+            finally{
                 $stream.Close()
-                #np++ $thisFile.FullName
                 Write-Output $thisFile.FullName
-            }
-        }
-    }
+            }#end finally
+        }#end default case
+    }#end switch
 
     #New Accounts
 
@@ -249,11 +219,11 @@ Function Initialize-TrackItInformation{
     $thisFile = $(Join-Path $(Split-Path $newFile) "Create-Me.csv")
     if(!(Test-Path $thisFile)){
         New-Item $(Split-Path $newFile) -ItemType File -Name "Create-Me.csv"
-    }
+    }#end if
     if (Test-Path $thisFile) {
         $thisFile = Get-ChildItem $thisFile
         Copy-Item $thisFile.FullName -Destination $(Join-Path $(Split-Path $thisFile) "$(get-date -f 'yyyyMMdd-hhmmss')-Create-Me.csv")
-    }
+    }#end if
 
     #Output Results, if any
     Switch ($($newAccounts.count)) {
@@ -261,36 +231,36 @@ Function Initialize-TrackItInformation{
             Try {
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
                 $newAccounts | ConvertTo-Csv -NoTypeInformation | ForEach-Object {$stream.WriteLine($_)}
-            } finally {
+            }#end case
+            finally {
                 $stream.Close()
                 #np++ $thisFile.FullName
                 Write-Output $thisFile.FullName
-            }
-        }
+            }#end finally
+        }#end case
         Default{
             Try{
                 $stream = [System.IO.StreamWriter]::new($thisFile.FullName)
-                #$thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeName`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"DateEntered`",`"ExistsInAD`""
                 $thisString = "`"ID`",`"Status`",`"Summary`",`"EmployeeID`",`"Site`",`"Department`",`"Title`",`"EmployeeType`",`"Requestor`",`"AssignedTech`",`"ExistsInAD`""
                 $stream.WriteLine($thisString)
-            }
+            }#end try
             Finally{
                 $stream.Close()
-            }
-        }
-    }
+            }#end finally
+        }#end Default case
+    }#end switch
 
     Try{
         $stream = [System.IO.StreamWriter]::new($newFile)
         $content | ConvertTo-Csv -NoTypeInformation | ForEach-Object{$stream.WriteLine($_)}
-    }finally{
+    }#end try
+    finally{
         $stream.Close()
-        #np++ $newFile.FullName
         Write-Output $newFile.FullName
-    }
+    }#end finally
 
     $stopWatch.Stop()
 
-}
+}#end function Initialize-TrackItInformation
 
-
+<# Import-Module SCCCDAccounts -Force#>
