@@ -18,18 +18,38 @@ HISTORY.......:
 #endregion :: Header
 
 Function Get-SQLWebAdvisorID{
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName="EmployeeID")]
     Param(
-     [Parameter(ParameterSetName='Default'  ,Mandatory=$true )] [string[]] $EmployeeID
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $UpdateFiles
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $OutputQuery
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $ShowQuery
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $Both
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [int] $SqlTimeOut=60
-    ,[Parameter(ParameterSetName='Default'  ,Mandatory=$false)] [switch] $NoPosition
-    ,[Parameter(ParameterSetName='Query'    ,Mandatory=$false)] [string] $Query
-    ,[Parameter(ParameterSetName='InputFile',Mandatory=$true )] [string] $InputFile
-    ,[Parameter(ParameterSetName='InputFile',Mandatory=$false)] [string] $Delimiter=","
+     [Parameter(Position=0,
+                ParameterSetName='EmployeeID',
+                Mandatory=$true )] [string[]] $EmployeeID
+    ,[Parameter(Position=0,
+                ParameterSetName='Name',
+                Mandatory=$true)][string]$Givenname
+    ,[Parameter(Position=1,
+                ParameterSetName='Name',
+                Mandatory=$true)][string]$Surname
+    ,[Parameter(Position=0,
+                ParameterSetName='Query',
+                Mandatory=$true)] [string] $Query
+    ,[Parameter(Position=0,
+                ParameterSetName='InputFile',
+                Mandatory=$true )] [string] $InputFile
+    ,[Parameter(Position=1,
+                ParameterSetName='InputFile',
+                Mandatory=$false)] [string] $Delimiter=","
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [switch] $UpdateFiles
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [switch] $OutputQuery
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [switch] $ShowQuery
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [switch] $Both
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [int] $SqlTimeOut=60
+    ,[Parameter(ParameterSetName='Default',
+                Mandatory=$false)] [switch] $NoPosition
     )
 
     Begin{
@@ -73,10 +93,17 @@ Function Get-SQLWebAdvisorID{
 
 
 #region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
-        
-        Switch($PSBoundParameters.ContainsKey('NoPosition')){
-            $true{
-                $strQuery = @"
+        if($PSBoundParameters.ContainsKey('Givenname')){
+            $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
+            AND (
+                $("`t`t`t POSITION.GIVENNAME = '{0}' AND POSITION.SURNAME = '{1}'" -f $Givenname,$Surname)
+            )
+"@))
+        }#end if(by name)
+        else{
+            Switch($PSBoundParameters.ContainsKey('NoPosition')){
+                $true{
+                    $strQuery = @"
 USE [ODS_HR]
 
 SELECT   P.ID AS [EMPLOYEEID]
@@ -99,17 +126,18 @@ ORDER BY P.ID
 
 
 "@
-            }
-            Default{
-                $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
-    AND (
-        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
-        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
-        )
+                }
+                Default{
+                    $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
+        AND (
+            $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
+            $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
+            )
 "@))
-            }
-        }
-
+                }#end Default
+            }#end Switch(NoPosition)
+    
+        }#end else
 
 #endregion
 
