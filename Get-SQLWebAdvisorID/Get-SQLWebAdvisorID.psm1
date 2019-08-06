@@ -54,32 +54,34 @@ Function Get-SQLWebAdvisorID{
 
     Begin{
         $fileSQLQuery = Get-Item (Join-Path $PSScriptRoot "query.sql")
-
-        Switch($InputFile){
-
-            {($PSBoundParameters.ContainsKey('InputFile')) -and $InputFile}{
-                $InputFile = Get-Item (Resolve-Path $InputFile)
-                $EmployeeID = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
-                Write-Verbose $EmployeeID
-                $strEmployeeIDs = [string]::Join(',',$($EmployeeID | ForEach-Object{"`'$_`'"}))
-            }#end case
-            {($PSBoundParameters.ContainsKey('InputFile')) -and (-not($InputFile))}{
-                Do{
-                    $InputFile = Read-Host -Prompt "Please give path to input file. (*.CSV): "
+        if($PSBoundParameters.ContainsKey('EmployeeID') -and ($PSBoundParameters.ContainsKey('InputFile'))){
+            Switch($PSBoundParameters.ContainsKey('InputFile')){
+                {($PSBoundParameters.ContainsKey('InputFile')) -and $InputFile}{
                     $InputFile = Get-Item (Resolve-Path $InputFile)
-                }Until(Test-Path $InputFile.FUllName)
-            }#end case
-            {-not($PSBoundParameters.ContainsKey('InputFile'))}{
-                $EmployeeID = $($EmployeeID.Replace("'","") -split ",")
-                $strEmployeeIDs = [string]::join(',',$($EmployeeID | Foreach-Object{"`'$_`'"}))
-                $strEmployeeIDs = $strEmployeeIDs.replace("''","'")
-            }#end case
-        }#end switch
+                    $EmployeeID = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
+                    Write-Verbose $EmployeeID
+                    $strEmployeeIDs = [string]::Join(',',$($EmployeeID | ForEach-Object{"`'$_`'"}))
+                }#end case
+                {($PSBoundParameters.ContainsKey('InputFile')) -and (-not($InputFile))}{
+                    Do{
+                        $InputFile = Read-Host -Prompt "Please give path to input file. (*.CSV): "
+                        $InputFile = Get-Item (Resolve-Path $InputFile)
+                    }Until(Test-Path $InputFile.FUllName)
+                }#end case
+                {-not($PSBoundParameters.ContainsKey('InputFile'))}{
+                    $EmployeeID = $($EmployeeID.Replace("'","") -split ",")
+                    $strEmployeeIDs = [string]::join(',',$($EmployeeID | Foreach-Object{"`'$_`'"}))
+                    $strEmployeeIDs = $strEmployeeIDs.replace("''","'")
+                }#end case
+            }#end switch
+        }#end if
 
         #$csvOutput = gci (join-path '\\sdofs1-08e\is$\Continuity\Celaya\AD\' 'WebAdvisorID.csv')
-        Write-Verbose "`$strEmployeeIDs:"
-        Write-Verbose $strEmployeeIDs
-
+        if($PSBoundParameters.ContainsKey('EmployeeID')){
+            Write-Warning "`$strEmployeeIDs:"
+            Write-Warning $strEmployeeIDs
+        }#end if
+    
     }#end Begin{}
 
     Process{
@@ -99,6 +101,7 @@ Function Get-SQLWebAdvisorID{
                 $("`t`t`t POSITION.GIVENNAME = '{0}' AND POSITION.SURNAME = '{1}'" -f $Givenname,$Surname)
             )
 "@))
+            [switch]$setEmployeeID = $true
         }#end if(by name)
         else{
             Switch($PSBoundParameters.ContainsKey('NoPosition')){
@@ -141,9 +144,11 @@ ORDER BY P.ID
 
 #endregion
 
-        write-verbose "IDs:"
-        Write-Verbose $strEmployeeIDs
-
+        if($PSBoundParameters.ContainsKey('EmployeeID')){
+            write-verbose "IDs:"
+            Write-Verbose $strEmployeeIDs
+        }#end if
+        
         #region :: Show Query
         if($PSBoundParameters.ContainsKey('showQuery')){
             Write-Host -ForegroundColor DarkGreen -BackgroundColor Gray "Showing query"
@@ -219,6 +224,7 @@ ORDER BY P.ID
         
         if([string]::IsNullOrEmpty($objResults)){
             [bool]$noResults = $true
+            Write-Warning "$noResults"
         }
 
 
@@ -232,7 +238,7 @@ ORDER BY P.ID
                     #$tblSortedResults += $tblStaffResults | ?{$_.EmployeeID -eq $strEmployeeIDs.Split(',')[$i]}
                     $id = $($strEmployeeIDs.Split(',')[$i]).replace("'",'')
                     $tblSortedResults += $tblStaffResults.Select("EmployeeID = `'$id`'")
-                }
+                }#end if
 
                 $tblSortedResults |
                     select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
@@ -243,22 +249,22 @@ ORDER BY P.ID
                     $tblSortedResults |
                         select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
                         Export-Csv -Delimiter "," -NoTypeInformation "I:\Continuity\Celaya\AD\New-AD-Account-Template-v2.csv"
-                }
-            }
+                }#end if
+            }#end if
             else{
                 $tblSortedResults = $tblStaffResults
             }
             Write-Verbose "Query from staff table contains: $($tblStaffResults.Rows.Count) rows."
 
-        }
+        }#end if
         else{
             '"GIVENNAME","MIDDLENAME","SURNAME","SUFFIX","PREFERREDNAME","EMPLOYEEID","EXTENSIONATTRIBUTE1","SITE","DEPT",DEPARTMENT","TITLE","TYPE","EMPLOYEETYPE","EMPLOYEETYPE_RAW","PSTAT_EFF_TERM_DATE","POS_EFF_TERM_DATE","CHANGE_DATE"' |
                 Out-File '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
-        }
+        }#end else
 
         if($PSBoundParameters.ContainsKey("UpdateFiles")){
             np++ '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
-        }
+        }#end if
 
         #$objResults = $tblStaffResults | select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SAMACCOUNTNAME | ConvertTo-Csv -NoTypeInformation
         $tmpFile = join-path $env:TEMP "$($(for($i = 0; $i -lt 6; $i++){$(0..9 | Get-Random)}) -join '').csv"
@@ -267,6 +273,9 @@ ORDER BY P.ID
             Export-Csv -NoTypeInformation -Delimiter "," $tmpFile
         $objResults = Import-Csv $tmpFile
 
+        if($setEmployeeID){
+            $EmployeeID = $tblStaffResults.EMPLOYEEID
+        }#end if
         #np++ $tmpFile
 
         #Remove-Item $tmpFile -Confirm:$false -Force
