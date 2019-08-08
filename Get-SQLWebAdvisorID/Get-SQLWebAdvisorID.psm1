@@ -29,54 +29,18 @@ Function Get-SQLWebAdvisorID{
     ,[Parameter(Position=1,
                 ParameterSetName='Name',
                 Mandatory=$true)][string]$Surname
-    ,[Parameter(Position=0,
-                ParameterSetName='Query',
-                Mandatory=$true)] [string] $Query
-    ,[Parameter(Position=0,
-                ParameterSetName='InputFile',
-                Mandatory=$true )] [string] $InputFile
-    ,[Parameter(Position=1,
-                ParameterSetName='InputFile',
-                Mandatory=$false)] [string] $Delimiter=","
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [switch] $UpdateFiles
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [switch] $OutputQuery
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [switch] $ShowQuery
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [switch] $Both
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [int] $SqlTimeOut=60
-    ,[Parameter(ParameterSetName='Default',
-                Mandatory=$false)] [switch] $NoPosition
+    ,[Parameter(Mandatory=$false)] [switch] $NoPosition
+    ,[Parameter(Mandatory=$false)] [int] $SqlTimeOut=60
+    ,[Parameter(Mandatory=$false)] [switch] $ShowQuery
+    ,[Parameter(Mandatory=$false)] [switch] $OutputQuery
     )
 
     Begin{
         $fileSQLQuery = Get-Item (Join-Path $PSScriptRoot "query.sql")
-        if($PSBoundParameters.ContainsKey('EmployeeID') -and ($PSBoundParameters.ContainsKey('InputFile'))){
-            Switch($PSBoundParameters.ContainsKey('InputFile')){
-                {($PSBoundParameters.ContainsKey('InputFile')) -and $InputFile}{
-                    $InputFile = Get-Item (Resolve-Path $InputFile)
-                    $EmployeeID = $(Import-Csv -Delimiter "," -Path $InputFile.FUllName).EmployeeIDs
-                    Write-Verbose $EmployeeID
-                    $strEmployeeIDs = [string]::Join(',',$($EmployeeID | ForEach-Object{"`'$_`'"}))
-                }#end case
-                {($PSBoundParameters.ContainsKey('InputFile')) -and (-not($InputFile))}{
-                    Do{
-                        $InputFile = Read-Host -Prompt "Please give path to input file. (*.CSV): "
-                        $InputFile = Get-Item (Resolve-Path $InputFile)
-                    }Until(Test-Path $InputFile.FUllName)
-                }#end case
-                {-not($PSBoundParameters.ContainsKey('InputFile'))}{
-                    $EmployeeID = $($EmployeeID.Replace("'","") -split ",")
-                    $strEmployeeIDs = [string]::join(',',$($EmployeeID | Foreach-Object{"`'$_`'"}))
-                    $strEmployeeIDs = $strEmployeeIDs.replace("''","'")
-                }#end case
-            }#end switch
-        }#end if
-
-    
+        if($PSBoundParameters.ContainsKey('NoPosition')){
+            $fileSQLQuery = Get-Item (Join-Path $PSScriptRoot "query_noposition.sql")
+            Write-Warning "$($fileSQLQuery)"
+        }#end if($PSBoundParameters.ContainsKey('NoPosition'))
     }#end Begin{}
 
     Process{
@@ -89,67 +53,62 @@ Function Get-SQLWebAdvisorID{
         $StaffConnection.Open()
 
 
-#region :: Current query using [DatatelInformation].[dbo].[vwFindNewEmployee]
-        if($PSBoundParameters.ContainsKey('Givenname')){
-            $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
-            AND (
-                $("`t`t`t POSITION.GIVENNAME = '{0}' AND POSITION.SURNAME = '{1}'" -f $Givenname,$Surname)
-            )
-"@))
-            [switch]$setEmployeeID = $true
-        }#end if(by name)
-        else{
-            Switch($PSBoundParameters.ContainsKey('NoPosition')){
-                $true{
-                    $strQuery = @"
-USE [ODS_HR]
-
-SELECT   P.ID AS [EMPLOYEEID]
-        ,P.FIRST_NAME AS [GIVENNAME]
-        ,P.MIDDLE_NAME AS [MIDDLENAME]
-        ,P.LAST_NAME AS [SURNAME]
-        ,P.SUFFIX AS [SUFFIX]
-        ,P.PREFERRED_NAME AS [PREFERREDNAME]
-        ,PP.PERSON_PIN_USER_ID AS [EXTENSIONATTRIBUTE1]
-        ,P.BIRTH_DATE
-        ,P.SSN
-FROM ODS_ST.dbo.S85_PERSON AS P  WITH (NOLOCK)
-LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
-    ON PP.PERSON_PIN_ID = P.ID
-WHERE (
-        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
-        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
-    )
-ORDER BY P.ID
-
-
-"@
-                }
-                Default{
-                    $strQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$(@"
+        #region :: Setup query string
+        Switch($PSBoundParameters.ContainsKey("NoPosition")){
+            $true{
+                if($PSBoundParameters.ContainsKey('Givenname')){
+                    $strAppendQuery = $("`r`n{0}" -f $(@"
         AND (
-            $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
-            $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
-            )
+            $("`t`t`t PERSON.GIVENNAME = '{0}' AND PERSON.SURNAME = '{1}'" -f $Givenname,$Surname)
+        )
 "@))
-                }#end Default
-            }#end Switch(NoPosition)
-    
-        }#end else
-
-#endregion
+                    [switch]$setEmployeeID = $true
+                }#end if($PSBoundParameters.ContainsKey('Givenname'))
+                else{
+                    $strAppendQuery = $(@"
+        AND (
+            $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   PERSON.EMPLOYEEID  = `'$($_)`'"})
+            $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR PERSON.EMPLOYEEID  = `'$($_)`'`r`n"})
+            )
+"@)
+                }#end else
+            }#end $true($PSBoundParameters.ContainsKey("NoPosition"))
+            Default{
+                if($PSBoundParameters.ContainsKey('Givenname')){
+                    $strAppendQuery = $("`r`n{0}" -f $(@"
+        AND (
+            $("`t`t`t POSITION.GIVENNAME = '{0}' AND POSITION.SURNAME = '{1}'" -f $Givenname,$Surname)
+        )
+"@))
+                    [switch]$setEmployeeID = $true
+                }#end if($PSBoundParameters.ContainsKey('Givenname'))
+                else{
+                    $strAppendQuery = $(@"
+    AND (
+        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   POSITION.EMPLOYEEID  = `'$($_)`'"})
+        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR POSITION.EMPLOYEEID  = `'$($_)`'`r`n"})
+        )
+"@)
+                }#end else
+            }#end Default($PSBoundParameters.ContainsKey("NoPosition"))
+        }#end Switch($PSBoundParameters.ContainsKey("NoPosition"))
+        
+        $fullQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$strAppendQuery)
+        #endregion
         
         #region :: Show Query
         if($PSBoundParameters.ContainsKey('showQuery')){
             Write-Host -ForegroundColor DarkGreen -BackgroundColor Gray "Showing query"
             Write-Host "`r`n"
-            Write-Host -ForegroundColor DarkRed -BackgroundColor White $strQuery
+            Write-Host -ForegroundColor DarkRed -BackgroundColor White $fullQuery
             Write-Host "`r`n"
-        }
+            $fullQuery | clip
+        }#end if($PSBoundParameters.ContainsKey('showQuery'))
         #endregion :: Show Query
 
+        #region :: Configure SQL Server connection and perform query
         $StaffCommand = $StaffConnection.CreateCommand()
-        $StaffCommand.CommandText = $strQuery
+        $StaffCommand.CommandText = $fullQuery
         $StaffCommand.CommandTimeout = $SqlTimeOut
         $StaffResults = $StaffCommand.ExecuteReader()
 
@@ -157,117 +116,43 @@ ORDER BY P.ID
             $tblStaffResults = New-Object System.Data.DataTable
             try{
                 $tblStaffResults.Load($StaffResults)
-            }
+            }#end try
             catch{
                 $ErrorMessage = $($_.Exception.Message)  #$_.Exception.Message
 
                 Write-Verbose $ErrorMessage
-            }
-
-        }
+            }#end catch
+        }#end if($StaffResults.HasRows)
         else{
-            <#
-            [bool]$noResults = $true
-            $strQuery = @"
-USE [ODS_HR]
-
-SELECT   P.ID AS [EMPLOYEEID]
-        ,P.FIRST_NAME AS [GIVENNAME]
-        ,P.MIDDLE_NAME AS [MIDDLENAME]
-        ,P.LAST_NAME AS [SURNAME]
-        ,P.SUFFIX AS [SUFFIX]
-        ,P.PREFERRED_NAME AS [PREFERREDNAME]
-        ,PP.PERSON_PIN_USER_ID AS [EXTENSIONATTRIBUTE1]
-        ,P.BIRTH_DATE
-        ,P.SSN
-FROM ODS_ST.dbo.S85_PERSON AS P  WITH (NOLOCK)
-LEFT JOIN ODS_ST.dbo.S85_PERSON_PIN AS PP WITH (NOLOCK)
-    ON PP.PERSON_PIN_ID = P.ID
-WHERE (
-        $($EmployeeID | select-Object -First 1 | Foreach-Object{"`t`t`t   P.ID  = `'$($_)`'"})
-        $($EmployeeID | select-Object -Skip 1 | Foreach-Object{"`t`t`tOR P.ID  = `'$($_)`'`r`n"})
-    )
-ORDER BY P.ID
-
-
-"@
-            $StaffCommand = $StaffConnection.CreateCommand()
-            $StaffCommand.CommandText = $strQuery
-            $StaffCommand.CommandTimeout = $SqlTimeOut
-            $StaffConnection.Open()
-            $StaffResults = $StaffCommand.ExecuteReader()
-            $StaffConnection.Close()
-
-            $tblStaffResults = New-Object System.Data.DataTable
-            try{
-                $tblStaffResults.Load($StaffResults)
-            }
-            catch{
-                $ErrorMessage = $($_.Exception.Message)  #$_.Exception.Message
-
-                Write-Verbose $ErrorMessage
-            }
-        #>
-        }
+            Write-Warning "No Results"
+        }#end else ($StaffResults.HasRows)
         
         $StaffConnection.Close()
-        
+        #endregion :: Configure SQL Server connection and perform query
+
+        #region :: Configure output object
+        $objResults = $tblStaffResults |
+            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN
+
         if([string]::IsNullOrEmpty($objResults)){
             [bool]$noResults = $true
+        }
+        if($noResults){
             Write-Warning "noResults"
             break
         }
 
-
         $tblSortedResults = @()
         if($tblStaffResults.Rows.Count -gt 0){
             #if($UpdateFiles){
-            if($PSBoundParameters.ContainsKey('UpdateFiles')){
-                $tblStaffResults | Export-Csv -Delimiter "," -NoTypeInformation $csvOutput
-
-                for($i=0;$i -lt $strEmployeeIDs.Split(',').count;$i++){
-                    #$tblSortedResults += $tblStaffResults | ?{$_.EmployeeID -eq $strEmployeeIDs.Split(',')[$i]}
-                    $id = $($strEmployeeIDs.Split(',')[$i]).replace("'",'')
-                    $tblSortedResults += $tblStaffResults.Select("EmployeeID = `'$id`'")
-                }#end if
-
-                $tblSortedResults |
-                    select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
-                    Export-Csv -Delimiter $delimiter -NoTypeInformation '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
-
-                    #if($both){
-                if($PSBoundParameters.ContainsKey('both')){
-                    $tblSortedResults |
-                        select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGEDATE,BIRTH_DATE,SSN |
-                        Export-Csv -Delimiter "," -NoTypeInformation "I:\Continuity\Celaya\AD\New-AD-Account-Template-v2.csv"
-                }#end if
-            }#end if
-            else{
-                $tblSortedResults = $tblStaffResults
-            }
+            $tblSortedResults = $tblStaffResults
             Write-Verbose "Query from staff table contains: $($tblStaffResults.Rows.Count) rows."
 
         }#end if
-        else{
-            '"GIVENNAME","MIDDLENAME","SURNAME","SUFFIX","PREFERREDNAME","EMPLOYEEID","EXTENSIONATTRIBUTE1","SITE","DEPT",DEPARTMENT","TITLE","TYPE","EMPLOYEETYPE","EMPLOYEETYPE_RAW","PSTAT_EFF_TERM_DATE","POS_EFF_TERM_DATE","CHANGE_DATE"' |
-                Out-File '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
-        }#end else
-
-        if($PSBoundParameters.ContainsKey("UpdateFiles")){
-            np++ '\\sdofs1-08e\is$\Continuity\Celaya\AD\query_WebAdvisorID.csv'
-        }#end if
-
-        #$objResults = $tblStaffResults | select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,SITE,DEPARTMENT,TITLE,EMPLOYEETYPE,SAMACCOUNTNAME | ConvertTo-Csv -NoTypeInformation
-        $tmpFile = join-path $env:TEMP "$($(for($i = 0; $i -lt 6; $i++){$(0..9 | Get-Random)}) -join '').csv"
-        $tblStaffResults |
-            select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN |
-            Export-Csv -NoTypeInformation -Delimiter "," $tmpFile
-        $objResults = Import-Csv $tmpFile
 
         if($setEmployeeID){
             $EmployeeID = $tblStaffResults.EMPLOYEEID
         }#end if
-        #np++ $tmpFile
 
         #Remove-Item $tmpFile -Confirm:$false -Force
         if($Global:ADHash.ContainsKey($EmployeeID)){
@@ -276,20 +161,16 @@ ORDER BY P.ID
             $objResults | Add-Member -MemberType NoteProperty -Name 'sAMAccountName' -Value $null
         }
         $objResults
+        #endregion ::Configure output object
+
     }#end Process{}
 
     End{
         if($PSBoundParameters.ContainsKey('outputQuery')){
-            $fileName = Join-Path $env:USERPROFILE\Desktop\Temp\ "$(get-date -f 'yyyyMMdd-HHmmss')_query.txt"
+            $fileName = Join-Path $env:USERPROFILE\Desktop\Temp\ "$(get-date -f 'yyyyMMdd-HHmmss')_query.sql"
             $strQuery | Out-File $fileName
             Write-Verbose "Query output to `'$fileName`'"
         }
     }#end End{}
 
 }#end Function Query-Staff
-
-<#
-
-Remove-Module Get-SQLWebAdvisorID; Import-Module Get-SQLWebAdvisorID
-
-#>
