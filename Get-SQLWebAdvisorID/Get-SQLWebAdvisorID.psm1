@@ -93,7 +93,7 @@ Function Get-SQLWebAdvisorID{
             }#end Default($PSBoundParameters.ContainsKey("NoPosition"))
         }#end Switch($PSBoundParameters.ContainsKey("NoPosition"))
         
-        $fullQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$strAppendQuery)
+        $fullQuery = $("{0}`r`n{1}" -f $(Get-Content -Raw $fileSQLQuery),$strAppendQuery) | Out-String -Stream
         #endregion
         
         #region :: Show Query
@@ -113,9 +113,11 @@ Function Get-SQLWebAdvisorID{
         $StaffResults = $StaffCommand.ExecuteReader()
 
         if($StaffResults.HasRows){
+            Write-Warning "Has Rows..."
             $tblStaffResults = New-Object System.Data.DataTable
             try{
                 $tblStaffResults.Load($StaffResults)
+                Write-Warning "Loaded StaffResults to tblStaffResults table"
             }#end try
             catch{
                 $ErrorMessage = $($_.Exception.Message)  #$_.Exception.Message
@@ -124,7 +126,7 @@ Function Get-SQLWebAdvisorID{
             }#end catch
         }#end if($StaffResults.HasRows)
         else{
-            Write-Warning "No Results"
+            Write-Warning "No Rows"
         }#end else ($StaffResults.HasRows)
         
         $StaffConnection.Close()
@@ -134,11 +136,13 @@ Function Get-SQLWebAdvisorID{
         $objResults = $tblStaffResults |
             select-object GIVENNAME,MIDDLENAME,SURNAME,SUFFIX,PREFERREDNAME,EMPLOYEEID,EXTENSIONATTRIBUTE1,EMAIL_DST,EMAIL_PD,EMAIL_INT,EMAIL_SCH,EMAIL_SC1,SITE,DEPT,DEPARTMENT,TITLE,EMPLOYEETYPE,SUPER_ID,EMPLOYEETYPE_RAW,PSTAT_EFF_TERM_DATE,POS_EFF_TERM_DATE,CHANGE_DATE,BIRTH_DATE,SSN
 
+        Write-Warning "tblStaffResults count...: $($tblStaffResults.count)"
+        Write-Warning "objResults..............: $($objResults.count)"
         if([string]::IsNullOrEmpty($objResults)){
             [bool]$noResults = $true
         }
         if($noResults){
-            Write-Warning "noResults"
+            Write-Warning "noResults; breaking..."
             break
         }
 
