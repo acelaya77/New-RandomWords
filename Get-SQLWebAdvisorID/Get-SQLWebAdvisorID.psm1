@@ -214,7 +214,8 @@ ORDER BY P.ID
         
         if([string]::IsNullOrEmpty($objResults)){
             [bool]$noResults = $true
-            Write-Warning "$noResults"
+            Write-Warning "noResults"
+            break
         }
 
 
