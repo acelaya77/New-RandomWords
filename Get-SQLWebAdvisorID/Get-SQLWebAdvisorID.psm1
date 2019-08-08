@@ -76,11 +76,6 @@ Function Get-SQLWebAdvisorID{
             }#end switch
         }#end if
 
-        #$csvOutput = gci (join-path '\\sdofs1-08e\is$\Continuity\Celaya\AD\' 'WebAdvisorID.csv')
-        if($PSBoundParameters.ContainsKey('EmployeeID')){
-            Write-Warning "`$strEmployeeIDs:"
-            Write-Warning $strEmployeeIDs
-        }#end if
     
     }#end Begin{}
 
@@ -143,11 +138,6 @@ ORDER BY P.ID
         }#end else
 
 #endregion
-
-        if($PSBoundParameters.ContainsKey('EmployeeID')){
-            write-verbose "IDs:"
-            Write-Verbose $strEmployeeIDs
-        }#end if
         
         #region :: Show Query
         if($PSBoundParameters.ContainsKey('showQuery')){
@@ -224,7 +214,8 @@ ORDER BY P.ID
         
         if([string]::IsNullOrEmpty($objResults)){
             [bool]$noResults = $true
-            Write-Warning "$noResults"
+            Write-Warning "noResults"
+            break
         }
 
 
