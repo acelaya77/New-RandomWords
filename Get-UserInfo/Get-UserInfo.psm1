@@ -93,6 +93,7 @@ Function Get-UserInfo{
                              'Mail',
                              'mailNickname',
                              'EmailAddress',
+                             'msExchRemoteRecipientType',
                              'MsExchWhenMailboxCreated',
                              'WhenCreated',
                              'WhenChanged',
@@ -111,6 +112,7 @@ Function Get-UserInfo{
                              'EmployeeId',
                              'UserAccountControl',
                              'Enabled',
+                             "msExchUMCallingLineIDs",
                              'wWWHomePage'
                     #Server = $DomainController
             }
@@ -163,6 +165,7 @@ Function Get-UserInfo{
                     , 'Office'
                     , 'OfficePhone'
                     , 'IpPhone'
+                    , "msExchUMCallingLineIDs"
                     , 'MobilePhone'
                     , 'Title'
                     , 'EmployeeType'
@@ -192,6 +195,7 @@ Function Get-UserInfo{
                     , 'LastLogonDate'
                     , 'Mail'
                     , 'MailNickname'
+                    , 'msExchRemoteRecipientType'
                     , @{N='ProxyAddresses'; E={$($($($_.ProxyAddresses).Where( {$_ -clike "smtp*"}).replace("smtp:", "")).split(",")) -join "`r`n"}}
                 )
             }
