@@ -54,6 +54,9 @@ Function Get-UserInfo{
         
         [Parameter(Mandatory=$false)]
         [switch]$ShowPass,
+
+        [Parameter(Mandatory=$false)]
+        [String]$PwdString,
         
         [Parameter(Mandatory=$false)]
         [switch]$UpdateLogs
@@ -113,7 +116,8 @@ Function Get-UserInfo{
                              'UserAccountControl',
                              'Enabled',
                              "msExchUMCallingLineIDs",
-                             'wWWHomePage'
+                             'wWWHomePage',
+                             'ExtensionAttribute10'
                     #Server = $DomainController
             }
             #$props
@@ -196,7 +200,10 @@ Function Get-UserInfo{
                     , 'Mail'
                     , 'MailNickname'
                     , 'msExchRemoteRecipientType'
-                    , @{N='ProxyAddresses'; E={$($($($_.ProxyAddresses).Where( {$_ -clike "smtp*"}).replace("smtp:", "")).split(",")) -join "`r`n"}}
+                    , @{N='SmtpAliases'; E={$($($($_.ProxyAddresses).Where( {$_ -clike "smtp*"}).replace("smtp:", "")).split(",")) -join "`r`n"}}
+                    , 'ProxyAddresses'
+                    , 'DistinguishedName'
+                    , 'ExtensionAttribute10'
                 )
             }
             $UserList = $UserList | Select-Object -Unique | Select-Object @splat
@@ -207,8 +214,10 @@ Function Get-UserInfo{
                 $true{
                     foreach($item in $UserList){
                         Switch($PSBoundParameters.ContainsKey('ShowPass')){
-                            $true{Add-SCCCDAccountLogEntry -user $item.sAMAccountName -update -ShowPass}
-                            Default{Add-SCCCDAccountLogEntry -user $item.sAMAccountName -update}
+                            #$true{Add-SCCCDAccountLogEntry -user $item.sAMAccountName -update -ShowPass}
+                            #Default{Add-SCCCDAccountLogEntry -user $item.sAMAccountName -update}
+                            $true{New-AccountLogEntry -newUser $item -Pass $PwdString}
+                            Default{New-AccountLogEntry -newUser $item -exists}
                         }
                     }
                 }
@@ -220,6 +229,7 @@ Function Get-UserInfo{
         End{} #end End{}
     } #end Function Get-UserInfo{}
 
+<#
 Function Show-User{
         Param(
             [parameter(mandatory=$true, ValueFromPipeLine=$true)]$user,
@@ -379,6 +389,4 @@ Path                : $($user.DistinguishedName)
         } #end End{}
     } #end Function Show-User{}
 
-<#
-Remove-Module Get-UserInfo;Import-Module Get-UserInfo
 #>
