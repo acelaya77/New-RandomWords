@@ -10,9 +10,8 @@ Param(
 )
     $date = get-date
     $groups = $null
-    $user = Get-ADUser -Identity $strUser -Properties * <# -Properties Memberof,DisplayName,CanonicalName,ScriptPath,HomeDrive,HomeDirectory,ProxyAddresses #>
-    #$strFileName = "$(get-date -f 'yyyyMMdd-hhmmss')-$($user.SAMACCOUNTNAME)-$($user.Givenname.ToLower().replace(" ","-"))-$($user.Surname.ToLower().replace(" ","-")).txt"
-    $strFileName = "{0}-{1}-{2}-{3}.txt" -f `
+    $user = Get-ADUser -Identity $strUser -Properties * 
+    $strFileName = "{0}-{1}-{2}-{3}_ad_user_log.txt" -f `
          $(get-date -f 'yyyyMMdd-hhmmss') `
         ,$($user.SAMACCOUNTNAME) `
         ,$(Switch($user.Givenname){{$_ -ne $null}{$_.ToLower().replace(" ","-")};Default{"null"}}) `
@@ -26,7 +25,7 @@ Param(
     $homeDrive = "$($user.HomeDrive)"
     $homePath = "$($user.HomeDirectory)"
     $script = "$($user.ScriptPath)"
-	$groups = $User.MemberOf | Get-ADGroup | select Name
+    $groups = $User.MemberOf | Get-ADGroup | select Name
     if(($user.ProxyAddresses -ne $null)){
         $ProxyAddresses = [string]::join("`n                 ",(($user.ProxyAddresses | ?{$_ -match "smtp:*"}).ToLower().Replace('smtp:','')))
     }
@@ -44,46 +43,46 @@ Param(
 
 "@
     $notes = @"
-	Name..................: $($User.Name)
-	SamAccountName........: $($User.SamAccountName)
-	GUID..................: $($user.ObjectGUID)
-    UserPrincipalName.....: $($User.UserPrincipalName)
-	EmployeeID............: $($User.EmployeeID)
-	ExtensionAttribute1...: $($User.ExtensionAttribute1)
-	GivenName.............: $($User.GivenName)
-	Surname...............: $($User.Surname)
-	DisplayName...........: $($User.DisplayName)
-	CanonicalName.........: $($User.CanonicalName)
-	Company...............: $($User.Company)
-	Department............: $($User.Department)
-	Title.................: $($User.Title)
-	Description...........: $($User.Description)
-	HomeDrive.............: $($User.HomeDrive)
-	HomeDirectory.........: $($User.HomeDirectory)
-	ScriptPath............: $($User.ScriptPath)
-	msNPAllowDialin.......: $($User.msNPAllowDialin)
-	Mail..................: $($User.Mail)
-	SMTP_Addresses........: $(try{[string]::join("`r`n`t......................: ",($(try{$($($($User.ProxyAddresses) | ?{!($_ -match $($User.Mail)) -and !($_ -match $($User.UserPrincipalName)) -and ($_ -cmatch "smtp:*")} | sort).Replace('smtp:',''))}catch{''})))}catch{''})
-	Description...........: $($User.Description)
-	HomePage..............: $($User.HomePage)
-	StreetAddress.........: $($User.StreetAddress)
-	City..................: $($User.City)
-	PostalCode............: $($User.PostalCode)
-	State.................: $($User.State)
-	Country...............: $($User.Country)
-	whenCreated...........: $($User.whenCreated)
-	whenChanged...........: $($User.whenChanged)
-	LastLogonDate.........: $($User.LastLogonDate)
-	PasswordLastSet.......: $($($User.PasswordLastSet) )
-	PasswordExpired.......: $($User.PasswordExpired)
-	Enabled...............: $($User.Enabled)
-	UserAccountControl....: $(Convert-UserAccountControl $user.UserAccountControl)
-	X400..................: $(try{[string]::join("`r`n",($User.ProxyAddresses | ?{($_ -match "X400:*")}).Replace('X400:',''))}catch{''})
-	EUM...................: $(try{[string]::join("`r`n",($User.ProxyAddresses | ?{($_ -match "EUM:*")}).Replace('EUM:',''))}catch{''})
+    Name........................ : $($User.Name)
+    SamAccountName.............. : $($User.SamAccountName)
+    GUID........................ : $($user.ObjectGUID)
+    UserPrincipalName........... : $($User.UserPrincipalName)
+    EmployeeID.................. : $($User.EmployeeID)
+    ExtensionAttribute1......... : $($User.ExtensionAttribute1)
+    GivenName................... : $($User.GivenName)
+    Surname..................... : $($User.Surname)
+    DisplayName................. : $($User.DisplayName)
+    CanonicalName............... : $($User.CanonicalName)
+    Company..................... : $($User.Company)
+    Department.................. : $($User.Department)
+    Title....................... : $($User.Title)
+    Description................. : $($User.Description)
+    HomeDrive................... : $($User.HomeDrive)
+    HomeDirectory............... : $($User.HomeDirectory)
+    ScriptPath.................. : $($User.ScriptPath)
+    msNPAllowDialin............. : $($User.msNPAllowDialin)
+    msExchRemoteRecipientType... : $($User.msExchRemoteRecipientType)
+    Mail........................ : $($User.Mail)
+    SMTP_Addresses.............. : $(try{[string]::join("`r`n    ............................ : ",($(try{$($($($User.ProxyAddresses) | ?{!($_ -match $($User.Mail)) -and !($_ -match $($User.UserPrincipalName)) -and ($_ -cmatch "smtp:*")} | sort).Replace('smtp:',''))}catch{''})))}catch{''})
+    HomePage.................... : $($User.HomePage)
+    StreetAddress............... : $($User.StreetAddress)
+    City........................ : $($User.City)
+    PostalCode.................. : $($User.PostalCode)
+    State....................... : $($User.State)
+    Country..................... : $($User.Country)
+    whenCreated................. : $($User.whenCreated)
+    whenChanged................. : $($User.whenChanged)
+    LastLogonDate............... : $($User.LastLogonDate)
+    PasswordLastSet............. : $($($User.PasswordLastSet) )
+    PasswordExpired............. : $($User.PasswordExpired)
+    Enabled..................... : $($User.Enabled)
+    UserAccountControl.......... : $(Convert-UserAccountControl $user.UserAccountControl)
+    X400........................ : $(try{[string]::join("`r`n    ............................ : ",$($User.ProxyAddresses | ?{($_ -match "X400:*")}))}catch{''})
+    EUM......................... : $(try{[string]::join("`r`n    ............................ : ",$($User.ProxyAddresses | ?{($_ -match "EUM:*")}))}catch{''})
 
 Groups:
 
-	$(if($groups.count -gt 0){$([string]::join("`r`n`t",$($($groups  | sort Name).Name)))}else{""})
+    $(if($groups.count -gt 0){$([string]::join("`r`n    ",$($($groups  | sort Name).Name)))}else{""})
 "@
 
     $output = $header
