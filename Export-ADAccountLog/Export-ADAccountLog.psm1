@@ -2,14 +2,15 @@
 [CmdletBinding()]
 Param(
     [string]$samAccountName,
-    [string]$Notes
+    [string]$Notes,
+    [Switch]$openFile
 )
     $thisUser = Get-ADUser -LDAPFilter "(SamAccountName=$($samAccountName))" -Properties *
 
     $date = get-date
     #$fileName = "AD_$(get-date -f 'yyyyMMdd-HHmmss')_$($samAccountName)_$($thisUser.GivenName.ToLower().Replace(" ","-"))_$($thisUser.Surname.ToLower().Replace(" ","-")).log"
     $fileName = "AD_{0}_{1}_{2}_{3}.log" -f $(get-date $date -f 'yyyyMMdd-HHmmss'),$samAccountName,$($thisUser.GivenName.ToLower().Replace(" ","-")),$($thisUser.Surname.ToLower().Replace(" ","-"))
-    $filePath = (Join-Path "I:\Continuity\Celaya\AD\" "Separated_Logs")
+    $filePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "Separated_Logs")
     $file = (Join-Path $filePath $fileName)
     Write-Warning $file
     
@@ -91,6 +92,10 @@ Groups:
     }
 
     $file
+    $output | clip
 
+    if($openFile){
+        ii $file
+    }
     Write-Verbose $("np++ {0}" -f $file)
 }#end Function Export-ADAccountLog{}
