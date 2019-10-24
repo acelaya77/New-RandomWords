@@ -216,9 +216,19 @@
                     $MyReturn.Site = $_
                 } # DN
         } # Switch
-	    $MyReturn.Site = $MyReturn.Site.ToUpper()
-		Return $MyReturn
-	}#end Process{}
+        $MyReturn.Site = $MyReturn.Site.ToUpper()
+        
+        $objReturn = @{
+            Company = $MyReturn.Company
+            StreetAddress = $MyReturn.StreetAddress
+            City = $MyReturn.City
+            PostalCode = $MyReturn.PostalCode
+            State = $MyReturn.State
+            Country = $MyReturn.Country
+            HomePage = $MyReturn.HomePage
+        }
+        $MyReturn, $objReturn
+    }#end Process{}
 } #end Function get-SiteInfo{}
 
 <#
