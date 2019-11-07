@@ -207,7 +207,7 @@ Function Get-UserInfo {
         $UserList += Get-ADUser @props
 
         #region :: removed 2018-06-22 :: return object, pipe to show screen
-        $UserList = $UserList | Select-Object -Unique | Select-Object @splat
+        $UserList = $UserList | Sort-Object samAccountName -Unique | Select-Object @splat
         
         
         switch ($PSBoundParameters.ContainsKey('UpdateLogs')) {
