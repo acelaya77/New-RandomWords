@@ -36,19 +36,27 @@ Function Get-UserInfo {
             , Position = 0
             , ValueFromPipeline = $true
             , ValueFromPipelineByPropertyName = $true)]
-        [Alias('Identity')]
+        [Parameter(Mandatory = $true
+            , ParameterSetName = 'Student'
+            , Position = 0
+            , ValueFromPipeline = $true
+            , ValueFromPipelineByPropertyName = $true)]
+        [Alias('Identity','Id')]
         [string]$sAMAccountName,
         
         [Parameter(Mandatory = $true
-            , Position = 0
             , ParameterSetName = 'Anr')]
+        [Parameter(Mandatory = $true
+            , ParameterSetName = 'Student')]
         [string]$Anr,
         
         
-        [Parameter(Mandatory = $false, ParameterSetName = "samAccountName")]
+        [Parameter(Mandatory = $false
+            , ParameterSetName = "samAccountName")]
         [switch]$ShowPass,
 
-        [Parameter(Mandatory = $false, ParameterSetName = "samAccountName")]
+        [Parameter(Mandatory = $false
+            , ParameterSetName = "samAccountName")]
         [String]$PwdString,
                 
         [Parameter(Mandatory = $false, ParameterSetName = "samAccountName")]
@@ -56,6 +64,7 @@ Function Get-UserInfo {
         [switch]$NoOutput,
         
         [Parameter(Mandatory = $false, ParameterSetName = "Student")]
+        [Parameter(Mandatory = $false, ParameterSetName = "Anr")]
         [switch]$Students,
 
         [Parameter(Mandatory = $false, ParameterSetName = "samAccountName")]
