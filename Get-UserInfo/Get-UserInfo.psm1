@@ -127,7 +127,7 @@ Function Get-UserInfo {
             "msExchUMCallingLineIDs",
             'wWWHomePage',
             'ExtensionAttribute10'
-            #Server = $DomainController
+            #Server = "$($DomainController.HostName)"
         }#end $props
         $splat = @{
             Property = @(
@@ -197,7 +197,7 @@ Function Get-UserInfo {
                     $props.Add('Filter', "Anr -eq '$Anr'")
                 }#end if{}
                 Else {
-                    $props.Add('Server', $DomainController)
+                    $props.Add('Server', "$($DomainController.HostName)")
                     $props.Add('Filter', "Anr -eq '$Anr'")
                 }#end Else{}                        
             }
@@ -207,7 +207,7 @@ Function Get-UserInfo {
                     $props.Add('Filter', "samAccountName -eq '$samAccountName'")
                 }#end if{}
                 Else {
-                    $props.Add('Server', $DomainController)
+                    $props.Add('Server', "$($DomainController.HostName)")
                     $props.Add('Filter', "samAccountName -eq '$samAccountName'")
                 }#end Else{}                        
             }
