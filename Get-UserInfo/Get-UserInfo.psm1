@@ -180,6 +180,7 @@ Function Get-UserInfo {
                 , 'ProxyAddresses'
                 , 'DistinguishedName'
                 , 'ExtensionAttribute10'
+                , @{N='Path';E={$_.DistinguishedName.Split(",").Where({$_ -notmatch "CN="}) -join ","}}
             )
         }#end $splat
 
@@ -213,7 +214,7 @@ Function Get-UserInfo {
             }
         }
         
-        $UserList += Get-ADUser @props
+        $UserList += Get-ADUser @props | Select-Object @splat
 
         #region :: removed 2018-06-22 :: return object, pipe to show screen
         $UserList = $UserList | Sort-Object samAccountName -Unique | Select-Object @splat
