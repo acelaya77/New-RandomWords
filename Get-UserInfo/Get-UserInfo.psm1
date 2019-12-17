@@ -72,7 +72,10 @@ Function Get-UserInfo {
         [switch]$screen,
 
         [Parameter(Mandatory = $false, ParameterSetName = "samAccountName")]
-        [switch]$UpdateLogs
+        [switch]$UpdateLogs,
+
+        [Parameter(Mandatory=$false, ParameterSetName = "samAccountName")]
+        $workOrder
     )
 
     Begin {
@@ -224,8 +227,8 @@ Function Get-UserInfo {
             $true {
                 foreach ($item in $UserList) {
                     Switch ($PSBoundParameters.ContainsKey('ShowPass')) {
-                        $true { New-AccountLogEntry -newUser $item -Pass $PwdString }
-                        Default { New-AccountLogEntry -newUser $item -exists }
+                        $true { New-AccountLogEntry -newUser $item -Pass $PwdString -workOrder $workOrder}
+                        Default { New-AccountLogEntry -newUser $item -exists -workOrder $workOrder}
                     }
                 }
             }
