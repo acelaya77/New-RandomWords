@@ -12,6 +12,6 @@ oh-my-posh/*
 posh-git/*
 *.swp
 dbatools/*
-Update-ADHash/*
+#Update-ADHash/*
 Import-ModuleExchange/
 Microsoft.SharePoint.MigrationTool.PowerShell/*
