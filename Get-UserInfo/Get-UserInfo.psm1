@@ -39,7 +39,7 @@ Function Get-UserInfo {
         [Parameter(Mandatory = $true
             , ParameterSetName = 'Student'
             , Position = 0
-            , ValueFromPipeline = $true
+            , ValueFromPipeline = $false
             , ValueFromPipelineByPropertyName = $true)]
         [Alias('Identity','Id')]
         [string]$sAMAccountName,
@@ -171,6 +171,7 @@ Function Get-UserInfo {
                 , 'PasswordExpired'
                 , 'PasswordLastSet'
                 , @{N = 'PasswordExpiry'; E = { if ($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0) { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') }else { $null } } }
+                , @{N = 'PasswordExpiry2'; E = { if (($_.accountExpires -eq 0) -or ($_.accountExpires -eq 9223372036854775807)) {$null}else { [datetime]::FromFileTime($_.accountExpires) } } }
                 , @{N = 'PasswordRemaining'; E = { if ($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0) { $([datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') - (Get-Date)).Days }else { "Change at next logon" } } }
                 , 'AccountExpirationDate'
                 , 'whenCreated'
@@ -197,22 +198,38 @@ Function Get-UserInfo {
         Switch ($PSCmdlet.ParameterSetName) {
             { $_ -eq "Anr" } {
                 if ($PSBoundParameters.ContainsKey('Students')) {
-                    $props.Add('Server', "STUDENTS")
-                    $props.Add('Filter', "Anr -eq '$Anr'")
+                    if(!($props.ContainsKey('Server'))){
+                        $props.Add('Server', "STUDENTS")
+                    }
+                    if(!($props.ContainsKey('Filter'))){
+                        $props.Add('Filter', "Anr -eq '$Anr'")
+                    }
                 }#end if{}
                 Else {
-                    $props.Add('Server', "$($DomainController.HostName)")
-                    $props.Add('Filter', "Anr -eq '$Anr'")
+                    if(!($props.ContainsKey('Server'))){
+                        $props.Add('Server', "$($DomainController.HostName)")
+                    }
+                    if(!($props.ContainsKey('Filter'))){
+                        $props.Add('Filter', "Anr -eq '$Anr'")
+                    }
                 }#end Else{}                        
             }
             Default {
                 if ($PSBoundParameters.ContainsKey('Students')) {
-                    $props.Add('Server', "STUDENTS")
-                    $props.Add('Filter', "samAccountName -eq '$samAccountName'")
+                    if(!($props.ContainsKey('Server'))){
+                        $props.Add('Server', "STUDENTS")
+                    }
+                    if(!($props.ContainsKey('Filter'))){
+                        $props.Add('Filter', "samAccountName -eq '$samAccountName'")
+                    }
                 }#end if{}
                 Else {
-                    $props.Add('Server', "$($DomainController.HostName)")
-                    $props.Add('Filter', "samAccountName -eq '$samAccountName'")
+                    if(!($props.ContainsKey('Server'))){
+                        $props.Add('Server', "$($DomainController.HostName)")
+                    }
+                    if(!($props.ContainsKey('Filter'))){
+                        $props.Add('Filter', "samAccountName -eq '$samAccountName'")
+                    }
                 }#end Else{}                        
             }
         }
