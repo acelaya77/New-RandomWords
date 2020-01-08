@@ -170,9 +170,9 @@ Function Get-UserInfo {
                 , 'Enabled'
                 , 'PasswordExpired'
                 , 'PasswordLastSet'
-                , @{N = 'PasswordExpiry'; E = { if ($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0) { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') }else { $null } } }
-                , @{N = 'PasswordExpiry2'; E = { if (($_.accountExpires -eq 0) -or ($_.accountExpires -eq 9223372036854775807)) {$null}else { [datetime]::FromFileTime($_.accountExpires) } } }
-                , @{N = 'PasswordRemaining'; E = { if ($_.'msDS-UserPasswordExpiryTimeComputed' -ne 0) { $([datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') - (Get-Date)).Days }else { "Change at next logon" } } }
+                , @{N = 'PasswordExpiryDate'; E = { if ($_.'msDS-UserPasswordExpiryTimeComputed' -eq 0) { "Reset on next login" }elseif($_.passwordExpired -eq $true){"PasswordExpired"}else {  [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } } }
+                #, @{N = 'PasswordExpiry2'; E = { if (($_.accountExpires -eq 0) -or ($_.accountExpires -eq 9223372036854775807)) {$null}else { $_.accountExpires } } } #@{Name="ExpiryDate";Expression={[datetime]::FromFileTime($_."msDS-UserPasswordExpiryTimeComputed")}}
+                , @{N = 'PasswordRemaining'; E = { if ( ($_.'msDS-UserPasswordExpiryTimeComputed' -eq 0) ) { "Reset on next login" }elseif( $_.passwordExpired ){"Expired"}else { $([datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') - (Get-Date)).Days } } }
                 , 'AccountExpirationDate'
                 , 'whenCreated'
                 , 'whenChanged'
