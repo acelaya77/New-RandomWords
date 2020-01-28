@@ -23,7 +23,7 @@
                     "Reedley College" = "RC"
                     "Madera Center" = "MC"
                     "Oakhurst Center" = "OC"
-                } | ft -AutoSize
+                } | Format-Table -AutoSize
                 $Site = $(Read-Host -Prompt "Site?" )
                 #get-SiteInfo -Site $Site
             }
@@ -61,7 +61,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.reedleycollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=RC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=RC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=RC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "reedleycollege.edu"
                     $MyReturn.Site = $_
 					} # RC
@@ -76,7 +77,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.scccd.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=DO,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=DO,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=DO,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "scccd.edu"
                     $MyReturn.Site = $_
 					} # DO
@@ -91,7 +93,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.fresnocitycollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=FC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "fresnocitycollege.edu"
                     $MyReturn.Site = $_
 					} # FCC
@@ -106,7 +109,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.fresnocitycollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=FC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "fresnocitycollege.edu"
                     $MyReturn.Site = $_
 					} # FC
@@ -121,7 +125,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.cloviscollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=CCC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=CCC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=CCC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "cloviscollege.edu"
                     $MyReturn.Site = $_
 					} # CCC
@@ -136,7 +141,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.cloviscollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=CCC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=CCC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=CCC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "cloviscollege.edu"
                     $MyReturn.Site = $_
 					} # CC
@@ -151,7 +157,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.fresnocitycollege.edu/"
-					$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=FC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=FC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "fresnocitycollege.edu"
                     $MyReturn.Site = $_
 					} # CTC
@@ -166,7 +173,8 @@
 					$MyReturn.Co = "UNITED STATES"
 					$MyReturn.CountryCode = "840"
 					$MyReturn.HomePage = "http://www.maderacenter.com/"
-					$MyReturn.OU = "OU=New Accounts,OU=MC,OU=NC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=MC,OU=NC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=NC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "scccd.edu"
                     $MyReturn.Site = $_
 					} # MC
@@ -181,7 +189,8 @@
                     $MyReturn.Co = "UNITED STATES"
                     $MyReturn.CountryCode = "840"
                     $MyReturn.HomePage = "http://http://www.oakhurstcenter.com/"
-                    $MyReturn.OU = "OU=New Accounts,OU=OC,OU=NC,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=OC,OU=NC,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=NC,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "scccd.edu"
                     $MyReturn.Site = $_
                 } # OC
@@ -196,7 +205,8 @@
                     $MyReturn.Co = "UNITED STATES"
                     $MyReturn.CountryCode = "840"
                     $MyReturn.HomePage = "http://http://www.scccd.edu/"
-                    $MyReturn.OU = "OU=New Accounts,OU=Clovis Center DO North,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=Clovis Center DO North,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=Clovis Center DO North,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "scccd.edu"
                     $MyReturn.Site = $_
                 } # HC
@@ -211,7 +221,8 @@
                     $MyReturn.Co = "UNITED STATES"
                     $MyReturn.CountryCode = "840"
                     $MyReturn.HomePage = "http://http://www.scccd.edu/"
-                    $MyReturn.OU = "OU=New Accounts,OU=Clovis Center DO North,DC=SCCCD,DC=NET"
+                    #$MyReturn.OU = "OU=New Accounts,OU=Clovis Center DO North,DC=SCCCD,DC=NET"
+                    $MyReturn.OU = $("{0}" -f $(Get-ADOrganizationalUnit -SearchBase "OU=Clovis Center DO North,DC=SCCCD,DC=NET" -Filter "Name -like '*New*Account*'").DistinguishedName)
                     $MyReturn.Domain = "scccd.edu"
                     $MyReturn.Site = $_
                 } # DN
