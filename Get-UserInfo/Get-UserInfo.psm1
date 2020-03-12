@@ -105,8 +105,8 @@ Function Get-UserInfo {
             'St',
             'PostalCode',
             'Country',
-            'Mail',
             'mailNickname',
+            'Mail',
             'EmailAddress',
             'msExchRemoteRecipientType',
             'MsExchWhenMailboxCreated',
@@ -132,7 +132,7 @@ Function Get-UserInfo {
             'ExtensionAttribute10'
             #Server = "$($DomainController.HostName)"
         }#end $props
-        $splat = @{
+        $splat = [ordered]@{
             Property = @(
                 'sAMAccountName'
                 , 'UserPrincipalName'
@@ -178,14 +178,14 @@ Function Get-UserInfo {
                 , 'whenCreated'
                 , 'whenChanged'
                 , 'LastLogonDate'
-                , 'Mail'
+                , 'DistinguishedName'
+                , @{N='Path';E={$_.DistinguishedName.Split(",").Where({$_ -notmatch "CN="}) -join ","}}
                 , 'MailNickname'
                 , 'msExchRemoteRecipientType'
-                , @{N = 'SmtpAliases'; E = { $($($($_.ProxyAddresses).Where( { $_ -clike "smtp*" }).replace("smtp:", "")).split(",")) -join "`r`n" } }
+                , 'Mail'
                 , 'ProxyAddresses'
-                , 'DistinguishedName'
+                , @{N = 'SmtpAliases'; E = { $($($($_.ProxyAddresses).Where( { $_ -clike "smtp*" }).replace("smtp:", "")).split(",")) -join "`r`n" } }
                 , 'ExtensionAttribute10'
-                , @{N='Path';E={$_.DistinguishedName.Split(",").Where({$_ -notmatch "CN="}) -join ","}}
             )
         }#end $splat
 
