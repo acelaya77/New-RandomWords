@@ -14,7 +14,20 @@
     Begin{
         Switch($help){
             $true{
-                @{
+$strReturn = $($(@"
+"Name","Value"
+"District Office","DO"
+"DO North","DN"
+"Clovis College","CC"
+"Fresno City College","FC"
+"Career Technical Center","CTC"
+"Reedley College","RC"
+"Madera Center","MC"
+"Oakhurst Center","OC"
+"@ ) | ConvertFrom-Csv -Delimiter "," )
+
+<#
+                $return = @{
                     "District Office" = "DO"
                     "DO North" = @("DN","HC")
                     "Clovis College" = @("CCC","CC")
@@ -23,8 +36,10 @@
                     "Reedley College" = "RC"
                     "Madera Center" = "MC"
                     "Oakhurst Center" = "OC"
-                } | Format-Table -AutoSize
-                $Site = $(Read-Host -Prompt "Site?" )
+                } 
+#>
+                #$return | Format-Table -AutoSize
+                #$Site = $(Read-Host -Prompt "Site?" )
                 #get-SiteInfo -Site $Site
             }
             Default{}
@@ -49,7 +64,11 @@
     }#end Begin{}
 
 	Process{
-		Switch -Wildcard ($site){
+        if(![string]::IsNullOrEmpty($strReturn)){
+            Return $strReturn
+            Break
+        }
+        Switch -Wildcard ($site){
 				"RC"{
                     $MyReturn = @{}
 					$MyReturn.Company = "Reedley College"
