@@ -13,13 +13,14 @@ Function New-RandomWords {
 
     #use this to generate the list from a free API
     if($PSBoundParameters.ContainsKey("Download")){
-        $path = "$env:USERPROFILE\Repositories\my_modules\SCCCDModules\New-RandomWords\words.txt"
-        $path = (Join-Path "$PSScriptRoot" "words.txt")
-        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $path
+        #$path = "$env:USERPROFILE\Repositories\my_modules\SCCCDModules\New-RandomWords\words.txt"
+        $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\words.txt"
+        #$path = (Join-Path "$PSScriptRoot" "words.txt")
+        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $path -Verbose
 
         $counter = 0
         $words = @()
-        $(Get-Content $path).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 8 -and $_.length -gt 2 }) | ForEach-Object { $words += [PSCustomObject]@{
+        $(Get-Content $path).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $words += [PSCustomObject]@{
                 Index = $("{0:00000}" -f $counter++)
                 Word  = $($_).replace('"',"")
             } }
