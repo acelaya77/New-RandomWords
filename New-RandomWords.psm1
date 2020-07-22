@@ -3,24 +3,36 @@ Function New-RandomWords {
     [cmdletbinding()]
     Param(
         [int]$WordCount = 3,
-        [int]$MaxCharacterLength = 6,
+        [int]$MaxCharacterLength,
         [Switch]$useWords,
         [Switch]$Download
     )#end Param()
 
     #Let's remove any variables
-    @("words","rndWords","strPassword","password","myReturnObject") | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+    @(
+        "rndWords"
+        "strPassword"
+        "password"
+        "myReturnObject"
+        "fauxPas"
+    ) | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+
+    #if([string]::IsNullOrEmpty($MaxCharacterLength.ToString())){
+    if($MaxCharacterLength -le 3){
+        [int]$MaxCharacterLength = 6
+    }
 
     #use this to generate the list from a free API
     if($PSBoundParameters.ContainsKey("Download")){
+        Write-Host "Downloading"
         #$path = "$env:USERPROFILE\Repositories\my_modules\SCCCDModules\New-RandomWords\words.txt"
         $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\words.txt"
         #$path = (Join-Path "$PSScriptRoot" "words.txt")
         Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $path -Verbose
 
         $counter = 0
-        $words = @()
-        $(Get-Content $path).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $words += [PSCustomObject]@{
+        $script:words = @()
+        $(Get-Content $path).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $script:words += [PSCustomObject]@{
                 Index = $("{0:00000}" -f $counter++)
                 Word  = $($_).replace('"',"")
             } }
@@ -28,28 +40,46 @@ Function New-RandomWords {
         $words[0..10]
         $words[-1]
         #>
-        $words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $path -Parent) (Split-Path $path -Leaf).replace("txt","csv"))
+        $script:words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $path -Parent) (Split-Path $path -Leaf).replace("txt","csv"))
     }
+
+    #exclusions list
+    $fauxPas = Import-Csv (Join-Path (Split-Path $path -Parent) "swearWords.csv")
+
 
     #$words = Get-Content (Join-Path $PSScriptRoot "words.txt")
-    if($PSBoundParameters.ContainsKey('useWords')){
-        #write-warning "using words from parameters"
-        #$words = Import-Csv -Delimiter "`t" (Join-Path "E:\My_Docs\repos\Modules\SCCCDModules\New-RandomWords\" "nautical_terms_stripped.csv")
-        $words = Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "nautical_terms_stripped.csv")
-        #$words | Get-Member
-
+    if(($Global:words | Measure-Object).count -gt 0){
+        Write-Verbose "`$Global:words exists, using that."
     }else{
-        #$words = $(Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "eff_large_wordlist.csv").where({$_ -notmatch "ass|douche|(wo)?man"}))
-        $words = $(Import-Csv -Delimiter "," (Join-Path $PSScriptRoot "words.csv"))
+
+        if($PSBoundParameters.ContainsKey('useWords')){
+            #write-warning "using words from parameters"
+            #$words = Import-Csv -Delimiter "`t" (Join-Path "E:\My_Docs\repos\Modules\SCCCDModules\New-RandomWords\" "nautical_terms_stripped.csv")
+            $Global:words = Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "nautical_terms_stripped.csv")
+            #$words | Get-Member
+            
+        }else{
+            #$words = $(Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "eff_large_wordlist.csv").where({$_ -notmatch "ass|douche|(wo)?man"}))
+            #$words = $(Import-Csv -Delimiter "," (Join-Path (split-path $path -parent) "words.csv"))
+            $Global:words = $(Import-Csv -Delimiter "," (Join-Path $PSScriptRoot "words.csv"))
+            #$words.Count
+            #$words.count
+        }
+        
+        $Global:words = $Global:words.Where({ $_.word -notin $fauxPas.swearWords })
     }
 
-    Write-Verbose "Word count: $($words.count)"
+    Write-Verbose "Word count: $($Global:words.count)"
     $script:rndWords = $Null
     while([string]::IsNullOrEmpty($script:rndWords)){
         #$script:rndWords = $(Get-Random -InputObject $($words.word.ToLower().Where({$PSItem.Length -le $MaxCharacterLength})) -Count $WordCount)
-        $script:rndWords = $(Get-Random -InputObject $($words.word.ToLower()) -Count $WordCount)
+        
+        $script:rndWords = $(Get-Random -InputObject $($Global:words.word).where({$PSItem.length -le $MaxCharacterLength}) -Count $WordCount)
     }
-    $strPassword = $("{0} {1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join ' '),$(@('.','?','!') | Get-Random))
+    #$strPassword = $("{0} {1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join ' '),$(@('@','#','$','&','.','?','!') | Get-Random))
+    $punctuation = $(@('.','?','!') | Get-Random)
+    $space = (@(' ','_') | Get-Random)
+    $strPassword = $("{0}{3}{1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join $space),$punctuation,$space)
     $password = $(ConvertTo-SecureString -Force -AsPlainText $strPassword)
     #$password
     #$strPassword
@@ -62,6 +92,6 @@ Function New-RandomWords {
     Return $returnObject
 
     #Let's remove any variables
-    @("words","rndWords","strPassword","password","myReturnObject") | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+    @("rndWords","strPassword","password","myReturnObject") | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
 
 }#end function New-RandomWords
