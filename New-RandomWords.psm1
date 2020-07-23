@@ -26,13 +26,14 @@ Function New-RandomWords {
     if($PSBoundParameters.ContainsKey("Download")){
         Write-Host "Downloading"
         #$path = "$env:USERPROFILE\Repositories\my_modules\SCCCDModules\New-RandomWords\words.txt"
-        $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\words.txt"
+        $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\"
+        $strFile = (Join-Path $path "words.txt")
         #$path = (Join-Path "$PSScriptRoot" "words.txt")
-        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $path -Verbose
+        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
 
         $counter = 0
         $script:words = @()
-        $(Get-Content $path).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $script:words += [PSCustomObject]@{
+        $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $script:words += [PSCustomObject]@{
                 Index = $("{0:00000}" -f $counter++)
                 Word  = $($_).replace('"',"")
             } }
@@ -40,11 +41,15 @@ Function New-RandomWords {
         $words[0..10]
         $words[-1]
         #>
-        $script:words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $path -Parent) (Split-Path $path -Leaf).replace("txt","csv"))
+        $script:words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $strFile -Parent) (Split-Path $strFile -Leaf).replace("txt","csv"))
     }
 
     #exclusions list
-    $fauxPas = Import-Csv (Join-Path (Split-Path $path -Parent) "swearWords.csv")
+    if([string]::IsNullOrEmpty($path)){
+        $path = $PSScriptRoot
+        Write-Host -ForegroundColor DarkCyan $path
+    }
+    $fauxPas = Import-Csv (Join-Path $path "swearWords.csv")
 
 
     #$words = Get-Content (Join-Path $PSScriptRoot "words.txt")
