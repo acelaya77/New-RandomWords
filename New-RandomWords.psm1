@@ -29,11 +29,11 @@ Function New-RandomWords {
         $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\"
         $strFile = (Join-Path $path "words.txt")
         #$path = (Join-Path "$PSScriptRoot" "words.txt")
-        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
+        Invoke-WebRequest "https://random-words-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
 
         $counter = 0
         $script:words = @()
-        $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit"}) | ForEach-Object { $script:words += [PSCustomObject]@{
+        $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit|tampon"}) | ForEach-Object { $script:words += [PSCustomObject]@{
                 Index = $("{0:00000}" -f $counter++)
                 Word  = $($_).replace('"',"")
             } }
