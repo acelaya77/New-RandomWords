@@ -21,32 +21,46 @@ Function New-RandomWords {
     if($MaxCharacterLength -le 3){
         [int]$MaxCharacterLength = 6
     }
-
+    $path = Switch ($Host.name){
+            'Visual Studio Code Host' { split-path $psEditor.GetEditorContext().CurrentFile.Path }
+            'Windows PowerShell ISE Host' {  Split-Path -Path $psISE.CurrentFile.FullPath }
+            'ConsoleHost' { $PSScriptRoot }
+        }
     #use this to generate the list from a free API
     if($PSBoundParameters.ContainsKey("Download")){
         Write-Host "Downloading"
-        #$path = "$env:USERPROFILE\Repositories\my_modules\SCCCDModules\New-RandomWords\words.txt"
-        $path = "e:\repos\windowspowershell-modules\SCCCDModules\New-RandomWords\"
+       
         $strFile = (Join-Path $path "words.txt")
-        #$path = (Join-Path "$PSScriptRoot" "words.txt")
-        Invoke-WebRequest "https://random-words-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
+
+        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
 
         $counter = 0
         $script:words = @()
-        $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 -and $_ -notmatch "shit|tampon"}) | ForEach-Object { $script:words += [PSCustomObject]@{
+        $script:Words = $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 }) | ForEach-Object {
+                New-Object Object | 
+                    Add-Member -NotePropertyName:"Index" -NotePropertyValue:$("{0:00000}" -f $counter++) -PassThru |
+                    Add-Member -NotePropertyName:"Word" -NotePropertyValue:$($_.replace('"',"")) -PassThru
+<#
+              $script:words += [PSCustomObject]@{
                 Index = $("{0:00000}" -f $counter++)
                 Word  = $($_).replace('"',"")
-            } }
+            }
+#>
+         }
         <#
-        $words[0..10]
-        $words[-1]
+        $script:words[0..10]
+        $script:words[-1]
         #>
         $script:words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $strFile -Parent) (Split-Path $strFile -Leaf).replace("txt","csv"))
     }
 
     #exclusions list
     if([string]::IsNullOrEmpty($path)){
-        $path = $PSScriptRoot
+        $path = Switch ($Host.name){
+            'Visual Studio Code Host' { split-path $psEditor.GetEditorContext().CurrentFile.Path }
+            'Windows PowerShell ISE Host' {  Split-Path -Path $psISE.CurrentFile.FullPath }
+            'ConsoleHost' { $PSScriptRoot }
+        }
         Write-Host -ForegroundColor DarkCyan $path
     }
     $fauxPas = Import-Csv (Join-Path $path "swearWords.csv")
@@ -60,13 +74,13 @@ Function New-RandomWords {
         if($PSBoundParameters.ContainsKey('useWords')){
             #write-warning "using words from parameters"
             #$words = Import-Csv -Delimiter "`t" (Join-Path "E:\My_Docs\repos\Modules\SCCCDModules\New-RandomWords\" "nautical_terms_stripped.csv")
-            $Global:words = Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "nautical_terms_stripped.csv")
+            $Global:words = Import-Csv -Delimiter "`t" (Join-Path $path "nautical_terms_stripped.csv")
             #$words | Get-Member
             
         }else{
             #$words = $(Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "eff_large_wordlist.csv").where({$_ -notmatch "ass|douche|(wo)?man"}))
             #$words = $(Import-Csv -Delimiter "," (Join-Path (split-path $path -parent) "words.csv"))
-            $Global:words = $(Import-Csv -Delimiter "," (Join-Path $PSScriptRoot "words.csv"))
+            $Global:words = $(Import-Csv -Delimiter "," (Join-Path $path "words.csv"))
             #$words.Count
             #$words.count
         }
@@ -76,23 +90,18 @@ Function New-RandomWords {
 
     Write-Verbose "Word count: $($Global:words.count)"
     $script:rndWords = $Null
-    while([string]::IsNullOrEmpty($script:rndWords)){
-        #$script:rndWords = $(Get-Random -InputObject $($words.word.ToLower().Where({$PSItem.Length -le $MaxCharacterLength})) -Count $WordCount)
-        
+    while ( [string]::IsNullOrEmpty($script:rndWords) ) {
         $script:rndWords = $(Get-Random -InputObject $($Global:words.word).where({$PSItem.length -le $MaxCharacterLength}) -Count $WordCount)
     }
-    #$strPassword = $("{0} {1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join ' '),$(@('@','#','$','&','.','?','!') | Get-Random))
-    $punctuation = $(@('.','?','!') | Get-Random)
-    $space = (@(' ','_') | Get-Random)
-    $strPassword = $("{0}{3}{1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join $space),$punctuation,$space)
-    $password = $(ConvertTo-SecureString -Force -AsPlainText $strPassword)
-    #$password
-    #$strPassword
 
-    $returnObject = [PSCustomObject]@{
-        AccountPassword = $password
-        PlainPassword = $strPassword
-    }#end PSCustomObject
+    $punctuation = $(@('.','?','!') | Get-Random)
+    $space = (@(' ','_','-') | Get-Random)
+    $strPassword = $("{0}{3}{1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join $space),$punctuation,$space)
+    $returnObject = $(ConvertTo-SecureString -Force -AsPlainText $strPassword) | ForEach-Object {
+        New-Object Object |
+            Add-Member -NotePropertyName:"AccountPassword" -NotePropertyValue:$_ -PassThru |
+            Add-Member -NotePropertyName:"PlainPassword" -NotePropertyValue:$strPassword -PassThru
+    }
 
     Return $returnObject
 
