@@ -26,6 +26,8 @@ Function New-RandomWords {
             'Windows PowerShell ISE Host' {  Split-Path -Path $psISE.CurrentFile.FullPath }
             'ConsoleHost' { $PSScriptRoot }
         }
+    #Write-host -ForegroundColor:Cyan $path
+    
     #use this to generate the list from a free API
     if($PSBoundParameters.ContainsKey("Download")){
         Write-Host "Downloading"
