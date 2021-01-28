@@ -21,13 +21,13 @@ Function New-RandomWords {
     if($MaxCharacterLength -le 3){
         [int]$MaxCharacterLength = 6
     }
-    $path = Switch ($Host.name){
-            'Visual Studio Code Host' { split-path $psEditor.GetEditorContext().CurrentFile.Path }
-            'Windows PowerShell ISE Host' {  Split-Path -Path $psISE.CurrentFile.FullPath }
-            'ConsoleHost' { $PSScriptRoot }
-        }
-    #Write-host -ForegroundColor:Cyan $path
-    
+    $path = (Split-Path $PSCommandPath -parent)
+    <#
+    Write-Host -ForegroundColor DarkCyan $($PSCommandPath)
+    Write-Host -ForegroundColor DarkCyan $($psEditor.GetEditorContext().CurrentFile.Path)
+    Write-Host -ForegroundColor DarkCyan $path
+    #>
+
     #use this to generate the list from a free API
     if($PSBoundParameters.ContainsKey("Download")){
         Write-Host "Downloading"
@@ -42,12 +42,6 @@ Function New-RandomWords {
                 New-Object Object | 
                     Add-Member -NotePropertyName:"Index" -NotePropertyValue:$("{0:00000}" -f $counter++) -PassThru |
                     Add-Member -NotePropertyName:"Word" -NotePropertyValue:$($_.replace('"',"")) -PassThru
-<#
-              $script:words += [PSCustomObject]@{
-                Index = $("{0:00000}" -f $counter++)
-                Word  = $($_).replace('"',"")
-            }
-#>
          }
         <#
         $script:words[0..10]
@@ -58,12 +52,13 @@ Function New-RandomWords {
 
     #exclusions list
     if([string]::IsNullOrEmpty($path)){
-        $path = Switch ($Host.name){
-            'Visual Studio Code Host' { split-path $psEditor.GetEditorContext().CurrentFile.Path }
-            'Windows PowerShell ISE Host' {  Split-Path -Path $psISE.CurrentFile.FullPath }
-            'ConsoleHost' { $PSScriptRoot }
-        }
-        Write-Host -ForegroundColor DarkCyan $path
+        $path = (Split-Path $PSCommandPath -parent)
+        
+        <#
+            Write-Host -ForegroundColor DarkCyan $($PSCommandPath)
+            Write-Host -ForegroundColor DarkCyan $($psEditor.GetEditorContext().CurrentFile.Path)
+            Write-Host -ForegroundColor DarkCyan $path
+        #>
     }
     $fauxPas = Import-Csv (Join-Path $path "swearWords.csv")
 
@@ -90,7 +85,7 @@ Function New-RandomWords {
         $Global:words = $Global:words.Where({ $_.word -notin $fauxPas.swearWords })
     }
 
-    Write-Verbose "Word count: $($Global:words.count)"
+    Write-Verbose "Word count: $($Global:words.count)" #$Global:words[0]
     $script:rndWords = $Null
     while ( [string]::IsNullOrEmpty($script:rndWords) ) {
         $script:rndWords = $(Get-Random -InputObject $($Global:words.word).where({$PSItem.length -le $MaxCharacterLength}) -Count $WordCount)
