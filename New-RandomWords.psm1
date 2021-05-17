@@ -10,99 +10,78 @@ Function New-RandomWords {
 
     #Let's remove any variables
     @(
-        "rndWords"
-        "strPassword"
-        "password"
-        "myReturnObject"
-        "fauxPas"
+        'rndWords'
+        'strPassword'
+        'password'
+        'myReturnObject'
+        'fauxPas'
     ) | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
 
-    #if([string]::IsNullOrEmpty($MaxCharacterLength.ToString())){
-    if($MaxCharacterLength -le 3){
+    if ($MaxCharacterLength -le 3) {
         [int]$MaxCharacterLength = 6
     }
-    $path = (Split-Path $PSCommandPath -parent)
-    <#
-    Write-Host -ForegroundColor DarkCyan $($PSCommandPath)
-    Write-Host -ForegroundColor DarkCyan $($psEditor.GetEditorContext().CurrentFile.Path)
-    Write-Host -ForegroundColor DarkCyan $path
-    #>
+    $path = (Split-Path $PSCommandPath -Parent)
 
     #use this to generate the list from a free API
-    if($PSBoundParameters.ContainsKey("Download")){
-        Write-Host "Downloading"
+    if ($PSBoundParameters.ContainsKey('Download')) {
+        Write-Host 'Downloading'
        
-        $strFile = (Join-Path $path "words.txt")
+        $strFile = (Join-Path $path 'words.txt')
 
-        Invoke-WebRequest "https://random-word-api.herokuapp.com/all?swear=0" -OutFile $strFile -Verbose
+        Invoke-WebRequest 'https://random-word-api.herokuapp.com/all?swear=0' -OutFile $strFile -Verbose
 
         $counter = 0
         $script:words = @()
-        $script:Words = $(Get-Content $strFile).replace("[", "").replace("]", "").split(",").where( { $_.Length -lt 10 -and $_.length -gt 2 }) | ForEach-Object {
-                New-Object Object | 
-                    Add-Member -NotePropertyName:"Index" -NotePropertyValue:$("{0:00000}" -f $counter++) -PassThru |
-                    Add-Member -NotePropertyName:"Word" -NotePropertyValue:$($_.replace('"',"")) -PassThru
-         }
-        <#
-        $script:words[0..10]
-        $script:words[-1]
-        #>
-        $script:words | Export-Csv -Delimiter "," -Nti (Join-Path (split-Path $strFile -Parent) (Split-Path $strFile -Leaf).replace("txt","csv"))
-    }
-
-    #exclusions list
-    if([string]::IsNullOrEmpty($path)){
-        $path = (Split-Path $PSCommandPath -parent)
-        
-        <#
-            Write-Host -ForegroundColor DarkCyan $($PSCommandPath)
-            Write-Host -ForegroundColor DarkCyan $($psEditor.GetEditorContext().CurrentFile.Path)
-            Write-Host -ForegroundColor DarkCyan $path
-        #>
-    }
-    $fauxPas = Import-Csv (Join-Path $path "swearWords.csv")
-
-
-    #$words = Get-Content (Join-Path $PSScriptRoot "words.txt")
-    if(($Global:words | Measure-Object).count -gt 0){
-        Write-Verbose "`$Global:words exists, using that."
-    }else{
-
-        if($PSBoundParameters.ContainsKey('useWords')){
-            #write-warning "using words from parameters"
-            #$words = Import-Csv -Delimiter "`t" (Join-Path "E:\My_Docs\repos\Modules\SCCCDModules\New-RandomWords\" "nautical_terms_stripped.csv")
-            $Global:words = Import-Csv -Delimiter "`t" (Join-Path $path "nautical_terms_stripped.csv")
-            #$words | Get-Member
-            
-        }else{
-            #$words = $(Import-Csv -Delimiter "`t" (Join-Path $PSScriptRoot "eff_large_wordlist.csv").where({$_ -notmatch "ass|douche|(wo)?man"}))
-            #$words = $(Import-Csv -Delimiter "," (Join-Path (split-path $path -parent) "words.csv"))
-            $Global:words = $(Import-Csv -Delimiter "," (Join-Path $path "words.csv"))
-            #$words.Count
-            #$words.count
+        $script:Words = $(Get-Content $strFile).replace('[', '').replace(']', '').split(',').where( { $_.Length -lt 10 -and $_.length -gt 2 }) | ForEach-Object {
+            New-Object Object | 
+                Add-Member -NotePropertyName:'Index' -NotePropertyValue:$('{0:00000}' -f $counter++) -PassThru |
+                Add-Member -NotePropertyName:'Word' -NotePropertyValue:$($_.replace('"', '')) -PassThru
+            }
+            $script:words | Export-Csv -Delimiter ',' -Nti (Join-Path (Split-Path $strFile -Parent) (Split-Path $strFile -Leaf).replace('txt', 'csv'))
         }
+
+        #exclusions list
+        if ([string]::IsNullOrEmpty($path)) {
+            $path = (Split-Path $PSCommandPath -Parent)
         
-        $Global:words = $Global:words.Where({ $_.word -notin $fauxPas.swearWords })
-    }
+        }
+        $fauxPas = Import-Csv (Join-Path $path 'swearWords.csv')
 
-    Write-Verbose "Word count: $($Global:words.count)" #$Global:words[0]
-    $script:rndWords = $Null
-    while ( [string]::IsNullOrEmpty($script:rndWords) ) {
-        $script:rndWords = $(Get-Random -InputObject $($Global:words.word).where({$PSItem.length -le $MaxCharacterLength}) -Count $WordCount)
-    }
 
-    $punctuation = $(@('.','?','!') | Get-Random)
-    $space = (@(' ','_','-') | Get-Random)
-    $strPassword = $("{0}{3}{1}{2}" -f $((get-Culture).TextInfo.ToTitleCase($script:rndWords[0])),$($script:rndWords[1..$($script:rndWords.Count)] -join $space),$punctuation,$space)
-    $returnObject = $(ConvertTo-SecureString -Force -AsPlainText $strPassword) | ForEach-Object {
-        New-Object Object |
-            Add-Member -NotePropertyName:"AccountPassword" -NotePropertyValue:$_ -PassThru |
-            Add-Member -NotePropertyName:"PlainPassword" -NotePropertyValue:$strPassword -PassThru
-    }
+        #$words = Get-Content (Join-Path $PSScriptRoot "words.txt")
+        if (($Global:words | Measure-Object).count -gt 0) {
+            Write-Verbose "`$Global:words exists, using that."
+        }
+        else {
 
-    Return $returnObject
+            if ($PSBoundParameters.ContainsKey('useWords')) {
+                $Global:words = Import-Csv -Delimiter "`t" (Join-Path $path 'nautical_terms_stripped.csv')
+            }
+            else {
+                $Global:words = $(Import-Csv -Delimiter ',' (Join-Path $path 'words.csv'))
+            }
+        
+            $Global:words = $Global:words.Where( { $_.word -notin $fauxPas.swearWords })
+        }
 
-    #Let's remove any variables
-    @("rndWords","strPassword","password","myReturnObject") | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+        Write-Verbose "Word count: $($Global:words.count)" #$Global:words[0]
+        $script:rndWords = $Null
+        while ( [string]::IsNullOrEmpty($script:rndWords) ) {
+            $script:rndWords = $(Get-Random -InputObject $($Global:words.word).where( { $PSItem.length -le $MaxCharacterLength }) -Count $WordCount)
+        }
 
-}#end function New-RandomWords
+        $punctuation = $(@('.', '?', '!') | Get-Random)
+        $space = (@(' ', '_', '-') | Get-Random)
+        $strPassword = $('{0}{3}{1}{2}' -f $((Get-Culture).TextInfo.ToTitleCase($script:rndWords[0])), $($script:rndWords[1..$($script:rndWords.Count)] -join $space), $punctuation, $space)
+        $returnObject = $(ConvertTo-SecureString -Force -AsPlainText $strPassword) | ForEach-Object {
+            New-Object Object |
+                Add-Member -NotePropertyName:'AccountPassword' -NotePropertyValue:$_ -PassThru |
+                Add-Member -NotePropertyName:'PlainPassword' -NotePropertyValue:$strPassword -PassThru
+            }
+
+            Return $returnObject
+
+            #Let's remove any variables
+            @('rndWords', 'strPassword', 'password', 'myReturnObject') | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+
+        }#end function New-RandomWords
