@@ -2,8 +2,8 @@
 Function New-RandomWords {
     [cmdletbinding()]
     Param(
-        [int]$WordCount = 3,
-        [int]$MaxCharacterLength = 6,
+        [ValidateRange(3, 32)][int]$WordCount = 3,
+        [ValidateRange(3, 32)][int]$MaxCharacterLength = 6,
         [Switch]$NewList
     )#end Param()
 
@@ -13,7 +13,8 @@ Function New-RandomWords {
         'strPassword'
         'password'
         'myReturnObject'
-        'fauxPas'
+        'swearWords'
+        'path'
     ) | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
 
     If ($PSBoundParameters.ContainsKey('Verbose') ) {
@@ -21,27 +22,36 @@ Function New-RandomWords {
         $VerbosePreference = 'Continue'
     }
 
-    if ($MaxCharacterLength -le 3) {
-        [int]$MaxCharacterLength = 8
-    }
-    $path = (Split-Path $PSCommandPath -Parent)
-
-    #exclusions list
+    #Our path
     if ([string]::IsNullOrEmpty($path)) {
-        $path = (Split-Path $PSCommandPath -Parent)
-    
+        if ( [string]::IsNullOrEmpty($PSCommandPath) ) {
+            $path = (Get-Location)
+        } else {
+            $path = (Split-Path $PSCommandPath -Parent)
+        }
     }
     
-    if (($Global:fauxPas | Measure-Object).Count -lt 1) {
-        $Global:fauxPas = Import-Csv (Join-Path $path 'swearWords.csv')
+    #The exclusions list
+    if ( !(Test-Path(Join-Path $path 'swearWords.csv')) ) {
+        $url = 'https://raw.githubusercontent.com/acelaya77/New-RandomWords/master/swearWords.csv'
+        Write-Verbose $("Downloading swear-word list: '{0}'" -f $url)
+        Invoke-WebRequest $url -UseBasicParsing -OutFile:(Join-Path $path 'swearWords.csv')
     }
+    $Global:swearWords = Import-Csv (Join-Path $path 'swearWords.csv')
 
 
-    #$words = Get-Content (Join-Path $PSScriptRoot "words.txt")
+    #Build words list
     if ( ($PSBoundParameters.ContainsKey('NewList')) -or (($Global:words | Measure-Object).count -lt 1) ) {
-        Write-Verbose "`$Global:words exists, using that."
-        $Global:words = $(Get-Content (Join-Path $path 'words.txt')).split("`r`n")
-        $Global:words = $Global:words.Where( { $_.word -notin $Global:fauxPas.swearWords })
+        $wordsPath = (Join-Path $path 'words.txt')
+        if ( (Test-Path($wordsPath)) -and !($PSBoundParameters.ContainsKey('NewList')) ) {
+            Write-Verbose "`$Global:words exists, using that."
+        } else {
+            $url = 'https://raw.githubusercontent.com/acelaya77/New-RandomWords/master/words.txt'
+            Write-Verbose $("Downloading word list: '{0}'" -f $url)
+            Invoke-WebRequest $url -UseBasicParsing -OutFile:$wordsPath
+        }
+        $Global:words = $(Get-Content $wordsPath).split("`r`n")
+        $Global:words = $Global:words.Where( { $_.word -notin $Global:swearWords.swearWords })
     }
 
     $script:rndWords = $Null
@@ -49,7 +59,7 @@ Function New-RandomWords {
         $stopWatch = [system.diagnostics.stopwatch]::startNew()
         $script:rndWords = $(Get-Random -InputObject $($Global:words).where( { $PSItem.length -le $MaxCharacterLength }) -Count $WordCount)
         $stopWatch.Stop()
-        Write-Verbose $("Word count: {0}, time: {1}" -f $($Global:words.count),$stopWatch.Elapsed.ToString('mm\m\:ss\.ffff\s'))
+        Write-Verbose $('Word count: {0}, time: {1}' -f $($Global:words.count), $stopWatch.Elapsed.ToString('mm\m\:ss\.ffff\s'))
     }
     
     $punctuation = $(@('.', '?', '!') | Get-Random)
@@ -61,14 +71,14 @@ Function New-RandomWords {
     $strPassword = $('{0}{1}{2}{1}{3}{1}{4}{5}' -f $word1, $space, $($wordMiddle -join $space), $numerals, $wordLast, $punctuation)
     $returnObject = $(ConvertTo-SecureString -Force -AsPlainText $strPassword) | ForEach-Object {
         New-Object Object |
-        Add-Member -NotePropertyName:'AccountPassword' -NotePropertyValue:$_ -PassThru |
-        Add-Member -NotePropertyName:'PlainPassword' -NotePropertyValue:$strPassword -PassThru
-    }
+            Add-Member -NotePropertyName:'AccountPassword' -NotePropertyValue:$_ -PassThru |
+            Add-Member -NotePropertyName:'PlainPassword' -NotePropertyValue:$strPassword -PassThru
+        }
     
-    Return $returnObject
+        Return $returnObject
     
-    #Let's remove any variables
-    @('rndWords', 'strPassword', 'password', 'myReturnObject') | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
-    $VerbosePreference = $oldVerbose
+        #Let's remove any variables
+        @('rndWords', 'strPassword', 'password', 'myReturnObject', 'swearWords') | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+        $VerbosePreference = $oldVerbose
 
-}#end function New-RandomWords
+    }#end function New-RandomWords
