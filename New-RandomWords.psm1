@@ -8,14 +8,8 @@ Function New-RandomWords {
     )#end Param()
 
     #Let's remove any variables
-    @(
-        'rndWords'
-        'strPassword'
-        'password'
-        'myReturnObject'
-        'swearWords'
-        'path'
-    ) | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
+    Get-Variable -Name:@('rndWords', 'strPassword', 'password', 'myReturnObject', 'swearWords', 'path') -Scope:'Script' -ErrorAction:'SilentlyContinue' -ErrorVariable:'getVarErrors' | 
+        Remove-Variable -ErrorAction:'SilentlyContinue' -ErrorVariable:'removeVarErrors'
 
     If ($PSBoundParameters.ContainsKey('Verbose') ) {
         $oldVerbose = $VerbosePreference
@@ -30,7 +24,8 @@ Function New-RandomWords {
             $path = (Split-Path $PSCommandPath -Parent)
         }
     }
-    
+    Write-Verbose $("Using path: '{0}'" -f $path)
+
     #The exclusions list
     if ( !(Test-Path(Join-Path $path 'swearWords.csv')) ) {
         $url = 'https://raw.githubusercontent.com/acelaya77/New-RandomWords/master/swearWords.csv'
