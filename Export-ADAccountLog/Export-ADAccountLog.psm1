@@ -1,24 +1,35 @@
 ﻿Function Export-ADAccountLog{
 [CmdletBinding()]
 Param(
-    [string]$samAccountName,
-    [string]$Notes,
-    [Switch]$openFile
-)
-    $thisUser = Get-ADUser -LDAPFilter "(SamAccountName=$($samAccountName))" -Properties *
-
-    $date = get-date
-    #$fileName = "AD_$(get-date -f 'yyyyMMdd-HHmmss')_$($samAccountName)_$($thisUser.GivenName.ToLower().Replace(" ","-"))_$($thisUser.Surname.ToLower().Replace(" ","-")).log"
-    $fileName = "AD_{0}_{1}_{2}_{3}.log" -f $(get-date $date -f 'yyyyMMdd-HHmmss'),$samAccountName,$($thisUser.GivenName.ToLower().Replace(" ","-")),$($thisUser.Surname.ToLower().Replace(" ","-"))
-    $filePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "Separated_Logs")
-    $file = (Join-Path $filePath $fileName)
-    Write-Warning $file
+    [Parameter(ValueFromPipelineByPropertyName = $true)]
+    [string[]]$samAccountName,
     
-    $groups = @()
-    $groups += $thisUser.MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name
+    [Parameter(Mandatory = $false)]
+    [string]$Notes,
 
-    $header = @"
+    [Parameter( Mandatory = $false )]
+    [Switch]$InvokeItem,
 
+    [Parameter( Mandatory = $false )]
+    [Switch]$SetClipboard
+)
+    $users = $samAccountName | %{
+        Get-ADUser -LDAPFilter:"(samAccountName=$($_))" -Properties:'*'
+    }
+    #$thisUser = Get-ADUser -LDAPFilter "(SamAccountName=$($samAccountName))" -Properties *
+
+    foreach ($thisUser in $users){
+        $date = get-date
+        #$fileName = "AD_$(get-date -f 'yyyyMMdd-HHmmss')_$($samAccountName)_$($thisUser.GivenName.ToLower().Replace(" ","-"))_$($thisUser.Surname.ToLower().Replace(" ","-")).log"
+        $fileName = "AD_{0}_{1}_{2}_{3}.log" -f $(get-date $date -f 'yyyyMMdd-HHmmss'),$thisUser.SamAccountName,$($thisUser.GivenName.ToLower().Replace(" ","-")),$($thisUser.Surname.ToLower().Replace(" ","-"))
+        $filePath = (Join-Path "\\sdofs1-08e\is`$\Continuity\Celaya\AD\" "Separated_Logs")
+        $file = (Join-Path $filePath $fileName)
+        Write-Verbose $("Output file: `"{0}`"" -f  $file)
+        
+        $groups = @()
+        $groups += $thisUser.MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name
+        
+        $header = @"
 ================================================================================
 TITLE......: $fileName
 AUTHOR.....: Anthony J. Celaya
@@ -29,8 +40,8 @@ NOTES......: $($Notes)
 
 
 "@
-    $output = $header
-    $output += @"
+$output = $header
+$output += @"
     Name..................: $($thisUser.Name)
     SamAccountName........: $($thisUser.SamAccountName)
     UserPrincipalName.....: $($thisUser.UserPrincipalName)
@@ -70,18 +81,13 @@ NOTES......: $($Notes)
     GUID..................: $($thisUser.objectGUID)
     SID...................: $($thisUser.objectSID)
 
-Groups:
+    Groups:
 
-    $(
-        if($groups.count -gt 0){
-            #$([string]::join("`r`n`t",$($($groups  | Sort-Object Name).Name)))
+    $(if($groups.count -gt 0){
             $([string]::join("`r`n$(' '*4)",$($groups  | Sort-Object Name)))
-        }
-        else{
-        }
-    )
+    })
 "@
-
+        
     $stream = [System.IO.StreamWriter]::new($file)
     Try{
         $output | Out-String -Stream | ForEach-Object{
@@ -92,10 +98,14 @@ Groups:
     }
 
     $file
-    $output | clip
+    
+    if ( $PSBoundParameters.ContainsKey('SetClipboard') ) {$output | clip}
 
-    if($openFile){
-        ii $file
+    if($InvokeItem){
+        Invoke-Item $file
     }
     Write-Verbose $("np++ {0}" -f $file)
+    }
+
 }#end Function Export-ADAccountLog{}
+    
