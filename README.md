@@ -7,16 +7,16 @@ The returned object contains two parts, one that can be passed directly as a sec
 
 
 [Example]
-
+```
 New-RandomWords
 
              AccountPassword PlainPassword
              --------------- -------------
 System.Security.SecureString Mommas cargo 409 rostra!
-
+```
 
 [Example]
-
+```
 $passwords = @(1..5).foreach({ New-RandomWords })
 
              AccountPassword PlainPassword
@@ -32,4 +32,4 @@ $passwords[0]
              AccountPassword PlainPassword
              --------------- -------------
 System.Security.SecureString Husker_augurs_144_girts.
-
+```
