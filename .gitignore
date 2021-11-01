@@ -4,13 +4,5 @@
 *.ignore
 *.old
 *.tar.gz
-[Tt]ranscript*/
-Archive[sd]/*
-[Ss]orted/*
-test-ADAccount/
-oh-my-posh/*
-posh-git/*
-*.swp
-dbatools/*
-Import-ModuleExchange/
-Microsoft.SharePoint.MigrationTool.PowerShell/*
+.vscode/
+.temp/
