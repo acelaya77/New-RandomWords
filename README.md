@@ -1,4 +1,4 @@
-# New-RandomWords
+# new-randomwords
 
 Used to generate temporary AD password.
 
@@ -8,7 +8,7 @@ The returned object contains two parts, one that can be passed directly as a sec
 
 [Example]
 ```
-New-RandomWords
+new-randomwords
 
              AccountPassword PlainPassword
              --------------- -------------
@@ -17,7 +17,7 @@ System.Security.SecureString Mommas cargo 409 rostra!
 
 [Example]
 ```
-$passwords = @(1..5).foreach({ New-RandomWords })
+$passwords = @(1..5).foreach({ new-randomwords })
 
              AccountPassword PlainPassword
              --------------- -------------
