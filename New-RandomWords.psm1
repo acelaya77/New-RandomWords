@@ -26,7 +26,8 @@ Function New-RandomWords {
     if ([string]::IsNullOrEmpty($path)) {
         if ( [string]::IsNullOrEmpty($PSCommandPath) ) {
             $path = (Get-Location)
-        } else {
+        }
+        else {
             $path = (Split-Path $PSCommandPath -Parent)
         }
     }
@@ -45,7 +46,8 @@ Function New-RandomWords {
         $wordsPath = (Join-Path $path 'words.txt')
         if ( (Test-Path($wordsPath)) -and !($PSBoundParameters.ContainsKey('NewList')) ) {
             Write-Verbose "`$Global:words exists, using that."
-        } else {
+        }
+        else {
             $url = 'https://raw.githubusercontent.com/acelaya77/New-RandomWords/master/words.txt'
             Write-Verbose $("Downloading word list: '{0}'" -f $url)
             Invoke-WebRequest $url -UseBasicParsing -OutFile:$wordsPath
@@ -64,7 +66,7 @@ Function New-RandomWords {
     
     $punctuation = $(@('.', '?', '!') | Get-Random)
     $space = (@(' ', '_') | Get-Random)
-    $numerals = ((0..999) | Get-Random )
+    $numerals = ((0..665), (667..999) | Get-Random )
     $word1 = $((Get-Culture).TextInfo.ToTitleCase($script:rndWords[0]))
     $wordMiddle = $script:rndWords[1..($WordCount - 2)]
     $wordLast = $($script:rndWords[$WordCount - 1])
