@@ -24,21 +24,23 @@ Function New-RandomWords {
 
     #Our path
     if ([string]::IsNullOrEmpty($path)) {
-        if ( [string]::IsNullOrEmpty($PSCommandPath) ) {
+        if ( [string]::IsNullOrEmpty( (Split-Path (Get-Module New-RandomWords).path ) ) ) {
             $path = (Get-Location)
         }
         else {
-            $path = (Split-Path $PSCommandPath -Parent)
+            $path = (Split-Path (Get-Module New-RandomWords).path )
         }
     }
+    write-verbose $path
     
     #The exclusions list
     if ( !(Test-Path(Join-Path $path 'swearWords.csv')) ) {
         $url = 'https://raw.githubusercontent.com/acelaya77/New-RandomWords/master/swearWords.csv'
         Write-Verbose $("Downloading swear-word list: '{0}'" -f $url)
-        Invoke-WebRequest $url -UseBasicParsing -OutFile:(Join-Path $path 'swearWords.csv')
+        Invoke-WebRequest $url -UseBasicParsing -OutFile:(Join-Path $path 'swearWords.csv') -verbose
     }
     $Global:swearWords = Import-Csv (Join-Path $path 'swearWords.csv')
+    #Get-Item (Join-Path $path 'swearWords.csv') | Remove-Item
 
 
     #Build words list
