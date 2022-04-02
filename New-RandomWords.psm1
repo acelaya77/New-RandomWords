@@ -54,8 +54,8 @@ Function New-RandomWords {
             Write-Verbose $("Downloading word list: '{0}'" -f $url)
             Invoke-WebRequest $url -UseBasicParsing -OutFile:$wordsPath
         }
-        $Global:words = $(Get-Content $wordsPath).split("`r`n")
-        $Global:words = $Global:words.Where( { $_.word -notin $Global:swearWords.swearWords })
+        $Global:words = $(Get-Content $wordsPath)
+        $Global:words = $Global:words.Where( { $_ -notin $Global:swearWords.swearWords })
     }
 
     $script:rndWords = $Null
