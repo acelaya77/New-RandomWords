@@ -8,6 +8,8 @@ Function New-RandomWords {
         
         [Parameter()]
         [ValidateRange(3, 32)][int]$MaxCharacterLength = 6,
+        
+        [Parameter()]
         [Switch]$NewList
     )#end Param()
 
@@ -25,8 +27,9 @@ Function New-RandomWords {
     write-verbose $path
     
     #Build words list
+    $wordsPath = (Join-Path $path 'words.txt')
+    'Using path: {0}' -f $wordsPath | Write-Verbose
     if ( ($PSBoundParameters.ContainsKey('NewList')) ) {
-        $wordsPath = (Join-Path $path 'words.txt')
         if ( (Test-Path($wordsPath)) -and !($PSBoundParameters.ContainsKey('NewList')) ) {
             Write-Verbose "Using existing word list.  To override use -NewList parameter."
         } else {
@@ -35,16 +38,16 @@ Function New-RandomWords {
             ForEach-Object { $_.Matches.Groups[1].Value } | 
             Set-Content (Join-Path '.' words.txt)
         }
-        $words = $(Get-Content $wordsPath)
     }
+    $words = $(Get-Content $wordsPath)
     
     $script:rndWords = $Null
     while ( [string]::IsNullOrEmpty($script:rndWords) ) {
         $stopWatch = [system.diagnostics.stopwatch]::startNew()
-        $script:rndWords = $(Get-Random -InputObject $($words).where( { $PSItem.length -le $MaxCharacterLength }) -Count $WordCount)
-        $stopWatch.Stop()
-        Write-Verbose $('Word count: {0}, time: {1}' -f $($words.count), $stopWatch.Elapsed.ToString('mm\m\:ss\.ffff\s'))
+        $script:rndWords = $($words.where({ $PSItem.length -le $MaxCharacterLength })) | Get-Random -Count $WordCount
     }
+    $stopWatch.Stop()
+    Write-Verbose $('Word count: {0}, time: {1}' -f $($words.count), $stopWatch.Elapsed.ToString('mm\m\:ss\.ffff\s'))
     
     $punctuation = $(@('.', '?', '!') | Get-Random)
     $space = (@(' ', '_','-') | Get-Random)
@@ -54,7 +57,7 @@ Function New-RandomWords {
     $wordLast = $($script:rndWords[$WordCount - 1])
     $collection = @()
     $collection += $word1
-    $collection += @($wordMiddle,$wordLast,$numerals) | Get-Random -Shuffle
+    $collection += @($wordMiddle,$wordLast,$numerals) | Get-Random -Count:3
     $strPassword = '{0}{1}' -f [string]::Join($space, $collection), $punctuation
     $returnObject = $(ConvertTo-SecureString -Force -AsPlainText $strPassword) | ForEach-Object {
         New-Object Object |
