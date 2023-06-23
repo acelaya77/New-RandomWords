@@ -41,11 +41,11 @@ Function New-Passphrase {
 
     #Our path
     if ([string]::IsNullOrEmpty($path)) {
-        if ( [string]::IsNullOrEmpty( (Split-Path (Get-Module New-RandomWords).path ) ) ) {
+        if ( [string]::IsNullOrEmpty( (Split-Path (Get-Module New-Passphrase).path ) ) ) {
             $path = (Get-Location)
         }
         else {
-            $path = (Split-Path (Get-Module New-RandomWords).path )
+            $path = (Split-Path (Get-Module New-Passphrase).path )
         }
     }
     write-verbose $path
@@ -117,4 +117,4 @@ Function New-Passphrase {
     @('rndWords', 'strPassword', 'password', 'myReturnObject', 'swearWords') | Get-Variable -Scope Script -ErrorAction SilentlyContinue -ErrorVariable getVarErrors | Remove-Variable -ErrorAction SilentlyContinue -ErrorVariable removeVarErrors
     $VerbosePreference = $oldVerbose
     
-}#end function New-RandomWords
+}#end function New-Passphrase
