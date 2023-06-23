@@ -8,7 +8,7 @@ The returned object contains three parts, one that can be passed directly as a s
 
 [Example]
 ```
-new-randomwords
+new-passphrase
 
              AccountPassword PlainPassword        Url
              --------------- -------------        ---
@@ -17,7 +17,7 @@ System.Security.SecureString Art-220-uphill-xbox. https://pwpush.com/p/oz6kosu_w
 
 [Example]
 ```
-$passwords = @(1..5).foreach({ new-randomwords })
+$passwords = @(1..5).foreach({ new-passphrase })
 
              AccountPassword PlainPassword            Url
              --------------- -------------            ---

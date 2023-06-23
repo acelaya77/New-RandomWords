@@ -1,5 +1,29 @@
 
-Function New-RandomWords {
+Function New-Passphrase {
+<#
+.SYNOPSIS
+    This generates a passphrase for use with provisioning new accounts or
+    resetting passwords in AD.
+
+
+.NOTES
+    Name: New-Passphrase
+    Author: Anthony J. Celaya
+    Version: 2.0
+    DateCreated: 2021-07-21
+    Default Word Count: 3
+    Default max word length: 6
+
+
+.EXAMPLE
+    $myPassphrase = New-Passphrase
+    $myPassphrase
+
+                AccountPassword PlainPassword            Url
+                --------------- -------------            ---
+    System.Security.SecureString Slain_enable_144_galley. https://pwpush.com/p/u6kkszzqsx4    
+
+#>
     [cmdletbinding()]
     Param(
         [Parameter()]
