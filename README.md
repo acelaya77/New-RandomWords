@@ -4,9 +4,10 @@ Used to generate temporary AD password.
 
 The returned object contains three parts, one that can be passed directly as a secure string, one that can be used for the plain text, and one containing the Password Pusher URL to send to user.
 
-
+<details><summary>[Examples]</summary>
 
 [Example]
+
 ```
 new-passphrase
 
@@ -16,6 +17,7 @@ System.Security.SecureString Art-220-uphill-xbox. https://pwpush.com/p/oz6kosu_w
 ```
 
 [Example]
+
 ```
 $passwords = @(1..5).foreach({ new-passphrase })
 
@@ -33,3 +35,5 @@ $passwords[0]
              --------------- -------------         ---
 System.Security.SecureString Owl dagger nanny 908? https://pwpush.com/p/0-lnayw6lqpshg
 ```
+
+</details>
